@@ -5,7 +5,7 @@ import { getAuth, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/api/firebase';
 import { COLORS, SIZES } from '@/constants/theme';
-import ScreenHeader from '@/components/ScreenHeader';
+
 import UserInfoCard from '@/components/UserInfoCard';
 import ProfileMenuItem from '@/components/ProfileMenuItem';
 
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Profil" />
+
       <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
       <View style={styles.menuContainer}>
         <ProfileMenuItem

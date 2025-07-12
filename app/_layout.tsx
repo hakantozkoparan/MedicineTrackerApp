@@ -3,6 +3,10 @@ import { useFonts, Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold } fr
 import { SplashScreen, useRouter, Stack, useSegments } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/api/firebase';
+import ScreenHeader from '@/components/ScreenHeader';
+import { TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -33,33 +37,25 @@ export default function RootLayout() {
   useEffect(() => {
     if (!authReady || !fontsLoaded) return;
 
-    // Check if the current route is inside the main app (tabs group)
-    const inTabsGroup = segments[0] === '(tabs)';
-
     if (fontError) {
       console.error('Font loading error:', fontError);
+      // You might want to show a user-facing error message here
     }
 
-    // Navigation logic
-    if (user && !inTabsGroup) {
-      // User is authenticated but not in the main app area, redirect to home.
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
+
+    if (user && inAuthGroup) {
+      // User is logged in but on an auth screen, redirect to home.
       router.replace('/(tabs)');
-    } else if (!user && inTabsGroup) {
-      // User is not authenticated but is in the main app area, redirect to login.
+    } else if (!user && !inAuthGroup) {
+      // User is not logged in and not on an auth screen, redirect to login.
       router.replace('/login');
-    } else if (!user && !inTabsGroup) {
-      // A failsafe for when the user is not logged in and not on a specific auth screen.
-      // This can happen on initial load before navigation is fully resolved.
-      // We ensure they are on the login screen.
-      if (segments[0] !== 'login' && segments[0] !== 'register') {
-        router.replace('/login');
-      }
     }
 
-    // Hide the splash screen once everything is ready and navigation has been handled.
+    // Hide the splash screen once everything is ready.
     SplashScreen.hideAsync();
 
-  }, [user, authReady, fontsLoaded, segments, fontError]);
+  }, [user, authReady, fontsLoaded, segments, fontError, router]);
 
   // While loading auth and fonts, return null. The splash screen will be visible.
   if (!authReady || !fontsLoaded) {
@@ -67,5 +63,33 @@ export default function RootLayout() {
   }
 
   // Once everything is loaded, render the main navigation stack
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
+      <Stack.Screen
+        name="add-medicine"
+        options={{
+          presentation: 'modal',
+          headerShown: true,
+          title: 'Yeni İlaç Ekle',
+          headerStyle: {
+            backgroundColor: COLORS.background,
+          },
+          headerTitleStyle: {
+            fontFamily: FONTS.bold,
+            color: COLORS.primary,
+            fontSize: SIZES.large,
+          },
+          headerTintColor: COLORS.primary,
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: SIZES.base }}>
+              <MaterialCommunityIcons name="arrow-left" size={28} color={COLORS.primary} />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+    </Stack>
+  );
 }

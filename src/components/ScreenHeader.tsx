@@ -1,29 +1,43 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 
 interface ScreenHeaderProps {
   title: string;
+  withBack?: boolean;
 }
 
-const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title }) => {
+const ScreenHeader = ({ title, withBack = false }: ScreenHeaderProps) => {
+  const router = useRouter();
+
   return (
-    <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>{title}</Text>
+    <View style={styles.container}>
+      {withBack && (
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={28} color={COLORS.darkGray} />
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.title, { marginLeft: withBack ? 0 : SIZES.large }]}>{title}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    paddingTop: SIZES.medium,
-    paddingBottom: SIZES.large,
-    paddingHorizontal: SIZES.large,
+  container: {
+    paddingVertical: SIZES.medium,
+    backgroundColor: COLORS.background, // Match the screen background
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: SIZES.extraLarge,
+  backButton: {
+    paddingHorizontal: SIZES.medium,
+  },
+  title: {
     fontFamily: FONTS.bold,
-    color: COLORS.accent,
+    fontSize: SIZES.xxLarge,
+    color: COLORS.darkGray,
   },
 });
 

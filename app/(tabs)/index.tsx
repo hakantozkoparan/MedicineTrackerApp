@@ -4,7 +4,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { auth, db } from '@/api/firebase';
 import { collection, query, getDocs, doc, onSnapshot } from 'firebase/firestore';
 import { signOut, User } from 'firebase/auth';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import { COLORS, SIZES, FONTS } from '@/constants/theme';
 
 // TypeScript interface for our medicine data
@@ -16,6 +16,7 @@ interface Medicine {
 
 export default function HomeScreen() {
   const router = useRouter();
+
   const [userName, setUserName] = useState('');
   // Properly type the medicines state with the Medicine interface
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -30,7 +31,9 @@ export default function HomeScreen() {
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          setUserName(docSnap.data().name || '');
+          const name = docSnap.data().name || '';
+          setUserName(name);
+          // We are now using a custom header, so no need to set navigation options
         } else {
           console.log("No such user document!");
         }
@@ -77,8 +80,9 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.contentContainer}>
         <View style={styles.header}>
-            <Text style={styles.title}>{`Hoş Geldin, ${userName}!`}</Text>
+          <Text style={styles.title}>Hoş Geldin, {userName || '...'}</Text>
         </View>
 
         <Text style={styles.subTitle}>Bugünkü İlaçların</Text>
@@ -90,6 +94,7 @@ export default function HomeScreen() {
             ListEmptyComponent={<Text style={styles.emptyText}>Bugün için ilacın yok.</Text>}
             contentContainerStyle={{ paddingBottom: 100 }}
         />
+      </View>
     </SafeAreaView>
   );
 };
@@ -100,27 +105,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: SIZES.large, // The single source of truth for horizontal alignment
+  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingTop: SIZES.large, // Space from the top of the screen
     marginBottom: SIZES.large,
-    paddingTop: SIZES.medium, // Add padding from the top of the safe area
-    marginLeft: SIZES.large, // Force left margin
-    marginRight: SIZES.large, // Add right margin for balance
   },
   title: {
     fontSize: SIZES.extraLarge,
-    fontFamily: FONTS.bold, // Use Poppins Bold
+    fontFamily: FONTS.bold,
     color: COLORS.accent,
-    flexShrink: 1, // Allows text to shrink if needed
   },
   subTitle: {
     fontSize: SIZES.large,
-    fontFamily: FONTS.semiBold, // Use Poppins SemiBold
+    fontFamily: FONTS.semiBold,
     color: COLORS.darkGray,
     marginBottom: SIZES.medium,
-    marginLeft: SIZES.large, // Force left margin
   },
 
   medicineCard: {
