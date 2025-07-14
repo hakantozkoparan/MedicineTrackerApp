@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, doc, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '@/api/firebase';
 import * as Notifications from 'expo-notifications';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ interface Medicine {
   notificationsEnabled: boolean;
   notificationIds?: string[];
   createdAt: any;
+  isActive: boolean;
 }
 
 const getMedicineIcon = (type: string): React.ComponentProps<typeof MaterialCommunityIcons>['name'] => {
@@ -45,7 +46,7 @@ export default function MedicinesScreen() {
         return;
       }
       const medicinesCollectionRef = collection(db, `users/${user.uid}/medicines`);
-      const q = query(medicinesCollectionRef, orderBy('createdAt', 'desc'));
+      const q = query(medicinesCollectionRef, where('isActive', '==', true), orderBy('createdAt', 'desc'));
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const userMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Medicine[];
         setMedicines(userMedicines);
@@ -76,9 +77,14 @@ export default function MedicinesScreen() {
               }
               const user = auth.currentUser;
               if (user) {
-                await deleteDoc(doc(db, `users/${user.uid}/medicines`, item.id));
+                const medicineRef = doc(db, `users/${user.uid}/medicines`, item.id);
+                await updateDoc(medicineRef, {
+                  isActive: false,
+                  notificationsEnabled: false, // İlaç pasifleşince bildirimleri de kapat
+                  notificationIds: [], // Tüm bildirim ID'lerini temizle
+                });
               }
-            } catch (error) {
+            } catch {
               Alert.alert("Hata", "İlaç silinirken bir sorun oluştu.");
             }
           },

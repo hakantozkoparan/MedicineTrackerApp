@@ -4,7 +4,7 @@
     "slug": "MedicineTrackerApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/images/icon.png",
+    "icon": "./assets/images/medicinetrackerlogo.png",
     "scheme": "medicinetrackerapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/medicinetrackerlogo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true

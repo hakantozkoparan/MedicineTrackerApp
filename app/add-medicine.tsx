@@ -31,7 +31,7 @@ const scheduleReminder = async (medicineName: string, doseTime: string): Promise
         body: `${medicineName} ilacınızı alma zamanı!`,
         sound: 'default',
       },
-      trigger: { type: 'daily', hour, minute },
+      trigger: { type: 'daily', hour: Number(hour), minute: Number(minute) },
     });
     return identifier;
   } catch (error) {
@@ -174,6 +174,7 @@ const AddMedicineScreen = () => {
         notificationsEnabled,
         notificationIds,
         createdAt: serverTimestamp(),
+        isActive: true,
       });
 
       Alert.alert('Başarılı', `İlaç başarıyla eklendi. ${notificationsEnabled ? 'Hatırlatıcılar ayarlandı.' : 'Hatırlatıcılar kapalı.'}`);

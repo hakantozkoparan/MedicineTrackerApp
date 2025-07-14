@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, Alert, Text } from 'react-native';
-import { useRouter } from 'expo-router';
-import { getAuth, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/api/firebase';
-import { COLORS, SIZES, FONTS } from '@/constants/theme';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useRouter } from 'expo-router';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import UserInfoCard from '@/components/UserInfoCard';
 import ProfileMenuItem from '@/components/ProfileMenuItem';
+import UserInfoCard from '@/components/UserInfoCard';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -15,27 +15,39 @@ export default function ProfileScreen() {
   const [userName, setUserName] = useState('');
   const [userSurname, setUserSurname] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          setUserName(userData.name);
-          setUserSurname(userData.surname);
-        }
-        setUserEmail(user.email || '');
+        
+        const docUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            setUserName(userData.name || '');
+            setUserSurname(userData.surname || '');
+            setUserEmail(userData.email || '');
+            setIsAdmin(userData.role === 'admin'); // Rolü kontrol et
+          } else {
+            console.log("Kullanıcı belgesi bulunamadı!");
+            setIsAdmin(false);
+          }
+        });
+
+        return () => docUnsubscribe();
       } else {
         setUserName('');
         setUserSurname('');
         setUserEmail('');
+        setIsAdmin(false);
+        router.replace('/login');
       }
     });
 
-    return () => unsubscribe();
-  }, [auth]);
+    return () => unsubscribeAuth();
+  }, [auth, router]);
+
 
   const handleSignOut = () => {
     Alert.alert(
@@ -74,20 +86,23 @@ export default function ProfileScreen() {
         <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
         
         <View style={styles.menuContainer}>
+          {isAdmin && (
+            <ProfileMenuItem
+              icon="settings-outline"
+              title="Talepler"
+              onPress={() => router.push('/admin/tickets')}
+              textColor={COLORS.danger} // Kırmızı renk
+            />
+          )}
           <ProfileMenuItem
             icon="person-outline"
             title="Hesap Bilgileri"
-            onPress={() => Alert.alert('Menü', 'Hesap Bilgileri tıklandı.')}
-          />
-          <ProfileMenuItem
-            icon="settings-outline"
-            title="Uygulama Ayarları"
-            onPress={() => Alert.alert('Menü', 'Uygulama Ayarları tıklandı.')}
+            onPress={() => router.push('/edit-profile')}
           />
           <ProfileMenuItem
             icon="help-circle-outline"
             title="Yardım & Destek"
-            onPress={() => Alert.alert('Menü', 'Yardım & Destek tıklandı.')}
+            onPress={() => router.push('/support-ticket')}
           />
           <View style={{marginTop: SIZES.large}} />
           <ProfileMenuItem

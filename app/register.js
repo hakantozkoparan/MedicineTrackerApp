@@ -74,6 +74,7 @@ const RegisterScreen = () => {
 
     if (!isValid) return;
 
+    setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -92,7 +93,8 @@ const RegisterScreen = () => {
           osName: Device.osName,
           osVersion: Device.osVersion,
           deviceName: Device.deviceName,
-        }
+        },
+        role: 'member',
       });
 
       router.replace('/(tabs)');
@@ -112,6 +114,8 @@ const RegisterScreen = () => {
           console.error(error);
           break;
       }
+    } finally {
+      setLoading(false);
     }
   };
 

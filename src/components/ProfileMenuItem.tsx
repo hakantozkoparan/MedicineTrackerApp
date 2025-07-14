@@ -8,14 +8,15 @@ interface ProfileMenuItemProps {
   title: string;
   onPress: () => void;
   isDestructive?: boolean;
+  textColor?: string;
 }
 
-const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({ icon, title, onPress, isDestructive = false }) => {
+const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({ icon, title, onPress, isDestructive = false, textColor }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.leftContainer}>
-        <Ionicons name={icon} size={24} color={isDestructive ? COLORS.danger : COLORS.primary} />
-        <Text style={[styles.title, isDestructive && styles.destructiveText]}>{title}</Text>
+        <Ionicons name={icon} size={24} color={isDestructive ? COLORS.danger : (textColor || COLORS.primary)} />
+        <Text style={[styles.title, isDestructive && styles.destructiveText, textColor && { color: textColor }]}>{title}</Text>
       </View>
       {!isDestructive && (
         <Ionicons name="chevron-forward-outline" size={22} color={COLORS.gray} />
