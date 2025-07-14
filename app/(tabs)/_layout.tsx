@@ -8,20 +8,9 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
-        headerShown: true,
-        headerStyle: {
-          backgroundColor: COLORS.background, // Match the app's background
-          elevation: 0, // Remove shadow on Android
-          shadowOpacity: 0, // Remove shadow on iOS
-          height: 120, // Increase header height
-        },
-        headerTitleStyle: {
-          fontFamily: 'Poppins-Bold',
-          fontSize: SIZES.extraLarge,
-          color: COLORS.accent,
-        },
-
-
+        // Hide all headers by default, we will use custom ones
+        headerShown: false, 
+        
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.darkGray,
         tabBarStyle: {
@@ -51,41 +40,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          headerShown: false, // Hide header to use custom one in the screen
+          // No options needed here as header is hidden globally
         }}
       />
       <Tabs.Screen
         name="medicines"
         options={{
+          // We need to define the title for the tab bar label
           title: 'İlaçlarım',
-          headerTitleAlign: 'left',
-          headerTitleStyle: {
-            fontFamily: FONTS.bold,
-            fontSize: SIZES.extraLarge,
-            color: COLORS.accent,
-            marginLeft: SIZES.large,
-          },
-          headerRight: () => {
-            const router = useRouter();
-            return (
-              <TouchableOpacity style={{ marginRight: SIZES.large }} onPress={() => router.push('/add-medicine')}>
-                <Ionicons name="add-circle" size={32} color={COLORS.primary} />
-              </TouchableOpacity>
-            );
-          },
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
+          // We need to define the title for the tab bar label
           title: 'Profil',
-          headerTitleAlign: 'left',
-          headerTitleStyle: {
-            fontFamily: FONTS.bold,
-            fontSize: SIZES.extraLarge,
-            color: COLORS.accent,
-            marginLeft: SIZES.large,
-          },
         }}
       />
     </Tabs>

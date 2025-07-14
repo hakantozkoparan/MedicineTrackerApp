@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '@/api/firebase';
 import { COLORS, SIZES, FONTS } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 // Define the structure of a medicine object
 interface Medicine {
@@ -19,6 +20,7 @@ interface Medicine {
 export default function MedicinesScreen() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
@@ -72,18 +74,25 @@ export default function MedicinesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={medicines}
-        renderItem={renderMedicineItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContentContainer}
-        ListEmptyComponent={() => (
-          <View style={styles.content}>
-            <Text style={styles.placeholderText}>Henüz hiç ilaç eklemediniz.</Text>
-            <Text style={styles.placeholderSubText}>Başlamak için sağ üstteki + butonuna dokunun.</Text>
-          </View>
-        )}
-      />
+      <View style={styles.contentContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>İlaçlarım</Text>
+          <TouchableOpacity onPress={() => router.push('/add-medicine')}>
+            <Ionicons name="add-circle" size={32} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={medicines}
+          renderItem={renderMedicineItem}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContent}>
+              <Text style={styles.placeholderText}>Henüz hiç ilaç eklemediniz.</Text>
+              <Text style={styles.placeholderSubText}>Başlamak için sağ üstteki + butonuna dokunun.</Text>
+            </View>
+          )}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -93,15 +102,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: SIZES.large,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: SIZES.large,
+    marginBottom: SIZES.large,
+  },
+  title: {
+    fontSize: SIZES.extraLarge,
+    fontFamily: FONTS.bold,
+    color: COLORS.accent,
+  },
+  emptyContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SIZES.large,
-  },
-  listContentContainer: {
-    padding: SIZES.large,
-    paddingTop: SIZES.base, // A bit of space from the header
   },
   placeholderText: {
     fontSize: SIZES.large,
@@ -116,7 +137,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: 'center',
   },
-  // Card Styles
   card: {
     backgroundColor: COLORS.white,
     borderRadius: SIZES.radius,

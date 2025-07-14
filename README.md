@@ -1,50 +1,85 @@
-# Welcome to your Expo app 👋
+# Medicine Tracker App (İlaç Takip Uygulaması)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Bu proje, kullanıcıların günlük ilaç takibini kolaylaştırmak, ilaç saatlerini hatırlatmak ve ilaç geçmişini yönetmek amacıyla geliştirilmiş bir mobil uygulamadır. React Native ve Expo kullanılarak oluşturulmuştur.
 
-## Get started
+## ✨ Temel Özellikler
 
-1. Install dependencies
+- **İlaç Ekleme/Düzenleme:** İlaç adı, dozu, sıklığı gibi bilgileri ekleme ve güncelleme.
+- **Hatırlatıcılar:** Belirlenen ilaç saatleri için anlık bildirimler.
+- **İlaç Geçmişi:** Alınan veya atlanan dozların takvimi.
+- **Kullanıcı Dostu Arayüz:** Kolay ve anlaşılır bir kullanım deneyimi.
 
-   ```bash
-   npm install
-   ```
+## 🚀 Kullanılan Teknolojiler
 
-2. Start the app
+- **Framework:** [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/)
+- **Navigasyon:** [Expo Router](https://docs.expo.dev/router/introduction/)
+- **Lokal Depolama:** [AsyncStorage](https://react-native-async-storage.github.io/async-storage/)
+- **Backend & Veritabanı:** [Firebase](https://firebase.google.com/)
+- **Bildirimler:** [Expo Notifications](https://docs.expo.dev/push-notifications/overview/)
+- **Dil:** [TypeScript](https://www.typescriptlang.org/)
 
-   ```bash
-   npx expo start
-   ```
+## ⚙️ Kurulum
 
-In the output, you'll find options to open the app in a
+Projeyi yerel makinenizde çalıştırmak için aşağıdaki adımları izleyin.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+**1. Projeyi Klonlayın:**
 ```bash
-npm run reset-project
+git clone <proje-repo-adresi>
+cd MedicineTrackerApp
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**2. Gerekli Bağımlılıkları Yükleyin:**
+Proje ana dizinindeyken aşağıdaki komutu çalıştırın. `npm` veya `yarn` kullanabilirsiniz.
+```bash
+npm install
+```
+veya
+```bash
+yarn install
+```
 
-## Learn more
+**3. Firebase Yapılandırması:**
+Projenin Firebase ile entegre çalışabilmesi için kendi Firebase projenizi oluşturmanız ve yapılandırma bilgilerinizi projeye eklemeniz gerekmektedir. Genellikle bu bilgiler `.env` gibi bir dosyada saklanır.
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📱 Uygulamayı Çalıştırma
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Kurulum tamamlandıktan sonra uygulamayı başlatmak için aşağıdaki komutları kullanabilirsiniz.
 
-## Join the community
+**1. Expo Sunucusunu Başlatın:**
+```bash
+npm start
+```
+veya
+```bash
+yarn start
+```
 
-Join our community of developers creating universal apps.
+**2. Simülatörde veya Cihazda Açın:**
+- **Android:** Sunucu başladıktan sonra terminalde `a` tuşuna basın.
+- **iOS:** Sunucu başladıktan sonra terminalde `i` tuşuna basın.
+- **Web:** Sunucu başladıktan sonra terminalde `w` tuşuna basın.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Alternatif olarak, Expo Go uygulamasını mobil cihazınıza indirip terminalde görünen QR kodunu okutarak da uygulamayı çalıştırabilirsiniz.
+
+## 📂 Proje Yapısı
+
+Projenin ana dizinleri ve açıklamaları aşağıda verilmiştir:
+
+```
+MedicineTrackerApp/
+├── app/              # Expo Router tabanlı ekranlar ve navigasyon yapısı
+├── src/              # Yeniden kullanılabilir bileşenler, yardımcı fonksiyonlar, hook'lar vb.
+├── assets/           # Resimler, fontlar ve diğer statik varlıklar
+├── .env              # Ortam değişkenleri (Firebase anahtarları vb.)
+└── package.json      # Proje bağımlılıkları ve script'leri
+```
+
+## 🤝 Katkıda Bulunma
+
+Katkılarınız projeyi daha iyi hale getirecektir! Lütfen pull request açmaktan veya issue oluşturmaktan çekinmeyin.
+
+1. Projeyi fork'layın.
+2. Yeni bir branch oluşturun (`git checkout -b feature/yeni-ozellik`).
+3. Değişikliklerinizi commit'leyin (`git commit -m 'Yeni özellik eklendi'`).
+4. Branch'inizi push'layın (`git push origin feature/yeni-ozellik`).
+5. Bir Pull Request açın.

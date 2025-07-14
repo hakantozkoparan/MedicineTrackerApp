@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: SIZES.large,
     borderRadius: SIZES.radius,
-    marginHorizontal: SIZES.large,
+    // marginHorizontal: SIZES.large, // Removed to allow the card to fill the container width
     marginTop: SIZES.medium,
     marginBottom: SIZES.large,
     shadowColor: '#000',

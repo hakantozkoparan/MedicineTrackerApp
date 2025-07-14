@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Alert, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getAuth, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/api/firebase';
-import { COLORS, SIZES } from '@/constants/theme';
+import { COLORS, SIZES, FONTS } from '@/constants/theme';
 
 import UserInfoCard from '@/components/UserInfoCard';
 import ProfileMenuItem from '@/components/ProfileMenuItem';
@@ -66,31 +66,37 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-
-      <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
-      <View style={styles.menuContainer}>
-        <ProfileMenuItem
-          icon="person-outline"
-          title="Hesap Bilgileri"
-          onPress={() => Alert.alert('Menü', 'Hesap Bilgileri tıklandı.')}
-        />
-        <ProfileMenuItem
-          icon="settings-outline"
-          title="Uygulama Ayarları"
-          onPress={() => Alert.alert('Menü', 'Uygulama Ayarları tıklandı.')}
-        />
-        <ProfileMenuItem
-          icon="help-circle-outline"
-          title="Yardım & Destek"
-          onPress={() => Alert.alert('Menü', 'Yardım & Destek tıklandı.')}
-        />
-        <View style={{marginTop: SIZES.large}} />
-        <ProfileMenuItem
-          icon="log-out-outline"
-          title="Çıkış Yap"
-          onPress={handleSignOut}
-          isDestructive
-        />
+      <View style={styles.contentContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Profil</Text>
+        </View>
+        
+        <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
+        
+        <View style={styles.menuContainer}>
+          <ProfileMenuItem
+            icon="person-outline"
+            title="Hesap Bilgileri"
+            onPress={() => Alert.alert('Menü', 'Hesap Bilgileri tıklandı.')}
+          />
+          <ProfileMenuItem
+            icon="settings-outline"
+            title="Uygulama Ayarları"
+            onPress={() => Alert.alert('Menü', 'Uygulama Ayarları tıklandı.')}
+          />
+          <ProfileMenuItem
+            icon="help-circle-outline"
+            title="Yardım & Destek"
+            onPress={() => Alert.alert('Menü', 'Yardım & Destek tıklandı.')}
+          />
+          <View style={{marginTop: SIZES.large}} />
+          <ProfileMenuItem
+            icon="log-out-outline"
+            title="Çıkış Yap"
+            onPress={handleSignOut}
+            isDestructive
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -101,9 +107,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
-  menuContainer: {
+  contentContainer: {
     flex: 1,
     paddingHorizontal: SIZES.large,
+  },
+  header: {
+    paddingTop: SIZES.large,
+    marginBottom: SIZES.large,
+  },
+  title: {
+    fontSize: SIZES.extraLarge,
+    fontFamily: FONTS.bold,
+    color: COLORS.accent,
+  },
+  menuContainer: {
+    flex: 1,
   },
 });
