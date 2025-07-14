@@ -1,8 +1,7 @@
-import { Tabs, useRouter } from 'expo-router';
-import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { COLORS } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, FONTS } from '@/constants/theme';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
 export default function TabLayout() {
   return (
@@ -40,7 +39,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          // No options needed here as header is hidden globally
+        title: 'Ana sayfa'  // No options needed here as header is hidden globally
         }}
       />
       <Tabs.Screen

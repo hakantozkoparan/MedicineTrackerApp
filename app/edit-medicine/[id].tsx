@@ -2,11 +2,11 @@ import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   SafeAreaView,
@@ -60,24 +60,18 @@ const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string })
     </View>
 );
 
-const AddMedicineScreen = () => {
+const EditMedicineScreen = () => {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
-  useEffect(() => {
-    const requestPermissions = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') {
-        await Notifications.requestPermissionsAsync();
-      }
-    };
-    requestPermissions();
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [originalNotificationIds, setOriginalNotificationIds] = useState<string[]>([]);
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
-  const [type, setType] = useState<string | number | null>('Hap');
-  const [frequency, setFrequency] = useState<number | null>(1);
-  const [doseTimes, setDoseTimes] = useState<string[]>([getCurrentTime()]);
+  const [type, setType] = useState<string | number | null>(null);
+  const [frequency, setFrequency] = useState<number | null>(null);
+  const [doseTimes, setDoseTimes] = useState<string[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -86,6 +80,35 @@ const AddMedicineScreen = () => {
   const [currentDoseIndex, setCurrentDoseIndex] = useState(0);
 
   useEffect(() => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    const docRef = doc(db, 'users', user.uid, 'medicines', id);
+    getDoc(docRef).then(docSnap => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setName(data.name);
+        setDosage(data.dosage);
+        setType(data.type);
+        setFrequency(data.frequency);
+        setDoseTimes(data.doseTimes || []);
+        setNotificationsEnabled(data.notificationsEnabled !== undefined ? data.notificationsEnabled : true);
+        setOriginalNotificationIds(data.notificationIds || []);
+      } else {
+        Alert.alert("Hata", "İlaç bulunamadı.");
+        router.back();
+      }
+      setLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (loading) return;
     if (frequency) {
       const newDoseTimes = Array.from({ length: frequency }, (_, i) => doseTimes[i] || getCurrentTime());
       setDoseTimes(newDoseTimes);
@@ -93,7 +116,7 @@ const AddMedicineScreen = () => {
       setDoseTimes([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frequency]);
+  }, [frequency, loading]);
 
   const handleTimePress = (index: number) => {
     const [hours, minutes] = doseTimes[index].split(':').map(Number);
@@ -133,10 +156,8 @@ const AddMedicineScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = async () => {
-    if (!validate()) {
-      return;
-    }
+  const handleUpdate = async () => {
+    if (!id || !validate()) return;
 
     if (notificationsEnabled) {
       const { status } = await Notifications.getPermissionsAsync();
@@ -154,45 +175,53 @@ const AddMedicineScreen = () => {
       router.replace('/login');
       return;
     }
+
     try {
-      const notificationIds: string[] = [];
+      for (const notificationId of originalNotificationIds) {
+        await Notifications.cancelScheduledNotificationAsync(notificationId);
+      }
+
+      const newNotificationIds: string[] = [];
       if (notificationsEnabled) {
         for (const doseTime of doseTimes) {
           const notificationId = await scheduleReminder(name, doseTime);
           if (notificationId) {
-            notificationIds.push(notificationId);
+            newNotificationIds.push(notificationId);
           }
         }
       }
 
-      await addDoc(collection(db, 'users', user.uid, 'medicines'), {
+      const docRef = doc(db, 'users', user.uid, 'medicines', id);
+      await updateDoc(docRef, {
         name,
         dosage,
         type,
         frequency,
         doseTimes,
         notificationsEnabled,
-        notificationIds,
-        createdAt: serverTimestamp(),
+        notificationIds: newNotificationIds,
       });
 
-      Alert.alert('Başarılı', `İlaç başarıyla eklendi. ${notificationsEnabled ? 'Hatırlatıcılar ayarlandı.' : 'Hatırlatıcılar kapalı.'}`);
+      Alert.alert('Başarılı', 'İlaç bilgileri güncellendi.');
       router.back();
     } catch (error) {
-      console.error('Error adding medicine: ', error);
-      Alert.alert('Hata', 'İlaç eklenirken bir sorun oluştu.');
+      console.error("İlaç güncellenirken hata oluştu: ", error);
+      Alert.alert("Hata", "İlaç güncellenirken bir sorun oluştu.");
     }
   };
 
+  if (loading) {
+    return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></SafeAreaView>;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
         </TouchableOpacity>
-        <Text style={styles.title}>İlaç Ekle</Text>
-        <View style={{ width: 28 }} />
+        <Text style={styles.title}>İlaç Düzenle</Text>
+        <View style={{ width: 28}} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
         <View style={styles.formGroup}>
@@ -274,8 +303,8 @@ const AddMedicineScreen = () => {
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Kaydet</Text>
+      <TouchableOpacity style={styles.saveButton} onPress={handleUpdate}>
+        <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
       </TouchableOpacity>
 
       <Modal
@@ -312,6 +341,7 @@ const AddMedicineScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',
@@ -356,4 +386,4 @@ const styles = StyleSheet.create({
   confirmButtonText: { color: COLORS.white },
 });
 
-export default AddMedicineScreen;
+export default EditMedicineScreen;

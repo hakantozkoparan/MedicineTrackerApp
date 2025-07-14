@@ -1,12 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useFonts, Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import { SplashScreen, useRouter, Stack, useSegments } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/api/firebase';
-import ScreenHeader from '@/components/ScreenHeader';
-import { TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
+import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { useEffect, useState } from 'react';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -68,28 +64,6 @@ export default function RootLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
-      <Stack.Screen
-        name="add-medicine"
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          title: 'Yeni İlaç Ekle',
-          headerStyle: {
-            backgroundColor: COLORS.background,
-          },
-          headerTitleStyle: {
-            fontFamily: FONTS.bold,
-            color: COLORS.primary,
-            fontSize: SIZES.large,
-          },
-          headerTintColor: COLORS.primary,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: SIZES.base }}>
-              <MaterialCommunityIcons name="arrow-left" size={28} color={COLORS.primary} />
-            </TouchableOpacity>
-          ),
-        }}
-      />
     </Stack>
   );
 }
