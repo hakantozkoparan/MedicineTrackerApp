@@ -1,12 +1,15 @@
 import { auth, db } from '@/api/firebase';
+import SimpleCaptcha from '@/components/SimpleCaptcha';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import SecurityManager from '@/utils/SecurityManager';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -16,6 +19,20 @@ const LoginScreen = () => {
   const [passwordError, setPasswordError] = useState('');
   const [formError, setFormError] = useState('');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
+  
+  // Support modal states
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportEmailError, setSupportEmailError] = useState('');
+  const [supportSubjectError, setSupportSubjectError] = useState('');
+  const [supportMessageError, setSupportMessageError] = useState('');
+  const [isSupportCaptchaVerified, setIsSupportCaptchaVerified] = useState(false);
+  const [supportCaptchaResetTrigger, setSupportCaptchaResetTrigger] = useState(0);
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
 
   // Check if user is already authenticated (but don't redirect, let _layout handle it)
   useEffect(() => {
@@ -73,20 +90,145 @@ const LoginScreen = () => {
       }
       
       Alert.alert('Hata', errorMessage);
+    }  };
+
+  // Support form validation
+  const validateSupportForm = () => {
+    let isValid = true;
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!supportEmail.trim()) {
+      setSupportEmailError('Email adresi gereklidir');
+      isValid = false;
+    } else if (!emailRegex.test(supportEmail)) {
+      setSupportEmailError('Geçerli bir email adresi girin');
+      isValid = false;
+    } else {
+      setSupportEmailError('');
+    }
+    
+    // Subject validation
+    if (!supportSubject.trim()) {
+      setSupportSubjectError('Konu başlığı gereklidir');
+      isValid = false;
+    } else if (supportSubject.trim().length < 5) {
+      setSupportSubjectError('Konu başlığı en az 5 karakter olmalıdır');
+      isValid = false;
+    } else {
+      setSupportSubjectError('');
+    }
+    
+    // Message validation
+    if (!supportMessage.trim()) {
+      setSupportMessageError('Mesaj içeriği gereklidir');
+      isValid = false;
+    } else if (supportMessage.trim().length < 10) {
+      setSupportMessageError('Mesaj en az 10 karakter olmalıdır');
+      isValid = false;
+    } else {
+      setSupportMessageError('');
+    }
+    
+    return isValid;
+  };
+
+  // Submit support request
+  const handleSupportSubmit = async () => {
+    if (!validateSupportForm()) {
+      return;
+    }
+    
+    if (!isSupportCaptchaVerified) {
+      Alert.alert('Hata', 'Lütfen captcha doğrulamasını tamamlayın.');
+      return;
+    }
+    
+    setIsSubmittingSupport(true);
+    
+    try {
+      // Önce günlük talep limitini kontrol et
+      const securityManager = SecurityManager.getInstance();
+      const limitCheck = await securityManager.checkSupportTicketLimit();
+      
+      if (!limitCheck.allowed) {
+        Alert.alert('Limit Aşıldı', limitCheck.reason);
+        setIsSubmittingSupport(false);
+        return;
+      }
+      
+      // Support ticket verilerini hazırla
+      const ticketData = {
+        email: supportEmail.trim(),
+        subject: supportSubject.trim(),
+        message: supportMessage.trim(),
+        status: 'open',
+        priority: 'normal',
+        source: 'login_page', // Nereden geldiğini belirt
+      };
+      
+      // SecurityManager ile kaydet (cihaz ID'si otomatik eklenir)
+      const success = await securityManager.recordSupportTicket(ticketData);
+      
+      if (success) {
+        Alert.alert(
+          'Başarılı!', 
+          'Destek talebiniz başarıyla gönderildi. En kısa sürede size geri dönüş yapacağız.',
+          [
+            {
+              text: 'Tamam',
+              onPress: () => {
+                // Modal'ı kapat ve formu temizle
+                setShowSupportModal(false);
+                setSupportEmail('');
+                setSupportSubject('');
+                setSupportMessage('');
+                setIsSupportCaptchaVerified(false);
+                setSupportCaptchaResetTrigger(prev => prev + 1);
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Hata', 'Destek talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      }
+      
+    } catch (error) {
+      console.error('Destek talebi gönderme hatası:', error);
+      Alert.alert('Hata', 'Destek talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsSubmittingSupport(false);
     }
   };
 
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setEmailError('');
     setPasswordError('');
     setFormError('');
-
 
     if (!email || !password) {
       if (!email) setEmailError('E-posta alanı boş bırakılamaz.');
       if (!password) setPasswordError('Şifre alanı boş bırakılamaz.');
       return;
+    }
+
+    if (!isCaptchaVerified) {
+      setFormError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      return;
+    }
+
+    // Güvenlik kontrolü - GEÇICI OLARAK DEVRE DIŞI
+    try {
+      const securityManager = SecurityManager.getInstance();
+      const securityCheck = await securityManager.checkSecurityLimits('login', email);
+      
+      if (!securityCheck.allowed) {
+        console.log('⚠️ Güvenlik kontrolü başarısız ama devam ediliyor:', securityCheck.reason);
+        // setFormError(securityCheck.reason);
+        // return;
+      }
+    } catch (error) {
+      console.error('Güvenlik kontrolü hatası:', error);
     }
 
     signInWithEmailAndPassword(auth, email, password)
@@ -196,10 +338,30 @@ const LoginScreen = () => {
         // Basit ve güvenilir navigation
         console.log('🚀 Login completed, navigating to main app');
         
+        // Başarılı giriş kaydı
+        try {
+          const securityManager = SecurityManager.getInstance();
+          await securityManager.recordAttempt('login', true, email);
+        } catch (error) {
+          console.error('Başarılı giriş kaydı hatası:', error);
+        }
+        
         // Sadece ana tabs sayfasına yönlendir
         router.replace('/(tabs)');
       })
-      .catch(error => {
+      .catch(async (error) => {
+        // Reset captcha on failed login attempt
+        setCaptchaResetTrigger(prev => prev + 1);
+        setIsCaptchaVerified(false);
+        
+        // Başarısız giriş kaydı
+        try {
+          const securityManager = SecurityManager.getInstance();
+          await securityManager.recordAttempt('login', false, email);
+        } catch (securityError) {
+          console.error('Başarısız giriş kaydı hatası:', securityError);
+        }
+        
         switch (error.code) {
           case 'auth/invalid-email':
             setEmailError('Lütfen geçerli bir e-posta adresi girin.');
@@ -218,15 +380,27 @@ const LoginScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" backgroundColor="transparent" translucent />
+      <StatusBar style="dark" backgroundColor={COLORS.lightGreen} translucent={false} />
+      <LinearGradient
+        colors={[COLORS.lightGreen, COLORS.white]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      
+      {/* İletişim butonu - sağ üst köşe */}
+      <View style={styles.topRightContainer}>
+        <TouchableOpacity 
+          onPress={() => setShowSupportModal(true)}
+          style={styles.contactLink}
+        >
+          <Ionicons name="chatbubble-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.contactLinkText}>İletişim</Text>
+        </TouchableOpacity>
+      </View>
+      
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={styles.container}
       >
-        <LinearGradient
-          colors={[COLORS.lightGreen, COLORS.white]}
-          style={StyleSheet.absoluteFillObject} // Position gradient behind content
-        />
         <View style={styles.innerContainer}>
         <Image source={require('../assets/images/medicinetrackerlogo.png')} style={styles.logo} />
         <Text style={styles.appName}>İlaç Takip</Text>
@@ -251,6 +425,11 @@ const LoginScreen = () => {
         />
         {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
+        <SimpleCaptcha 
+          onVerified={setIsCaptchaVerified}
+          resetTrigger={captchaResetTrigger}
+        />
+
         {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
         
         <TouchableOpacity onPress={handleLogin} style={{width: '100%'}}>
@@ -274,6 +453,108 @@ const LoginScreen = () => {
         </View>
       </View>
       </KeyboardAvoidingView>
+      
+      {/* Support Modal */}
+      <Modal
+        visible={showSupportModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSupportModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowSupportModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <Text style={styles.modalCloseText}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>İletişim</Text>
+            <View style={styles.modalHeaderSpacer} />
+          </View>
+          
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.modalDescription}>
+              Bir sorun mu yaşıyorsunuz? Size yardımcı olmak için buradayız. 
+              Lütfen aşağıdaki formu doldurun, en kısa sürede size geri dönüş yapalım.
+            </Text>
+            
+            <View style={styles.modalInputContainer}>
+              <Text style={styles.modalLabel}>Email Adresiniz *</Text>
+              <TextInput
+                style={[styles.modalInput, supportEmailError ? styles.modalInputError : null]}
+                placeholder="ornek@email.com"
+                placeholderTextColor={COLORS.gray}
+                value={supportEmail}
+                onChangeText={setSupportEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {supportEmailError ? (
+                <Text style={styles.modalErrorText}>{supportEmailError}</Text>
+              ) : null}
+            </View>
+            
+            <View style={styles.modalInputContainer}>
+              <Text style={styles.modalLabel}>Konu Başlığı *</Text>
+              <TextInput
+                style={[styles.modalInput, supportSubjectError ? styles.modalInputError : null]}
+                placeholder="Sorunun kısa açıklaması"
+                placeholderTextColor={COLORS.gray}
+                value={supportSubject}
+                onChangeText={setSupportSubject}
+                maxLength={100}
+              />
+              {supportSubjectError ? (
+                <Text style={styles.modalErrorText}>{supportSubjectError}</Text>
+              ) : null}
+            </View>
+            
+            <View style={styles.modalInputContainer}>
+              <Text style={styles.modalLabel}>Mesajınız *</Text>
+              <TextInput
+                style={[styles.modalTextArea, supportMessageError ? styles.modalInputError : null]}
+                placeholder="Sorunuzu detaylı bir şekilde açıklayın..."
+                placeholderTextColor={COLORS.gray}
+                value={supportMessage}
+                onChangeText={setSupportMessage}
+                multiline
+                numberOfLines={6}
+                maxLength={1000}
+                textAlignVertical="top"
+              />
+              {supportMessageError ? (
+                <Text style={styles.modalErrorText}>{supportMessageError}</Text>
+              ) : null}
+            </View>
+            
+            <View style={styles.modalCaptchaContainer}>
+              <SimpleCaptcha
+                onVerified={setIsSupportCaptchaVerified}
+                resetTrigger={supportCaptchaResetTrigger}
+              />
+            </View>
+            
+            <TouchableOpacity
+              style={[
+                styles.modalSubmitButton,
+                (!isSupportCaptchaVerified || isSubmittingSupport) && styles.modalSubmitButtonDisabled
+              ]}
+              onPress={handleSupportSubmit}
+              disabled={!isSupportCaptchaVerified || isSubmittingSupport}
+            >
+              {isSubmittingSupport ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.modalSubmitButtonText}>
+                  Destek Talebi Gönder
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -378,6 +659,130 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: 'bold',
     marginLeft: SIZES.base / 2,
+  },
+  topRightContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: SIZES.large,
+    zIndex: 1,
+  },
+  contactLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SIZES.base / 2,
+    paddingHorizontal: SIZES.base,
+  },
+  contactLinkText: {
+    color: COLORS.primary,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.semiBold,
+    marginLeft: SIZES.base / 2,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIZES.large,
+    paddingVertical: SIZES.medium,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  modalCloseButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.lightGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontSize: SIZES.large,
+    color: COLORS.darkGray,
+    fontWeight: 'bold',
+  },
+  modalTitle: {
+    fontSize: SIZES.extraLarge,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+  },
+  modalHeaderSpacer: {
+    width: 30,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: SIZES.large,
+  },
+  modalDescription: {
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    color: COLORS.darkGray,
+    textAlign: 'center',
+    marginVertical: SIZES.large,
+    lineHeight: 24,
+  },
+  modalInputContainer: {
+    marginBottom: SIZES.large,
+  },
+  modalLabel: {
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.darkGray,
+    marginBottom: SIZES.base,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.medium,
+    paddingVertical: SIZES.medium,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    backgroundColor: COLORS.white,
+  },
+  modalTextArea: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.medium,
+    paddingVertical: SIZES.medium,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    backgroundColor: COLORS.white,
+    height: 120,
+  },
+  modalInputError: {
+    borderColor: COLORS.danger,
+  },
+  modalErrorText: {
+    color: COLORS.danger,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.regular,
+    marginTop: SIZES.base / 2,
+  },
+  modalCaptchaContainer: {
+    marginBottom: SIZES.large,
+    alignItems: 'center',
+  },
+  modalSubmitButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SIZES.medium,
+    borderRadius: SIZES.radius,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SIZES.xxLarge,
+  },
+  modalSubmitButtonDisabled: {
+    backgroundColor: COLORS.gray,
+  },
+  modalSubmitButtonText: {
+    color: COLORS.white,
+    fontSize: SIZES.large,
+    fontFamily: FONTS.semiBold,
   }
 });
 

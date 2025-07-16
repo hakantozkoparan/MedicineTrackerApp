@@ -1,4 +1,6 @@
 import { auth, db } from '@/api/firebase';
+import SimpleCaptcha from '@/components/SimpleCaptcha';
+import SecurityManager from '@/utils/SecurityManager';
 import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
@@ -23,6 +25,8 @@ const RegisterScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
 
   const getPushNotificationToken = async () => {
     let token;
@@ -73,7 +77,25 @@ const RegisterScreen = () => {
       isValid = false;
     }
 
+    if (!isCaptchaVerified) {
+      Alert.alert('Uyarı', 'Lütfen güvenlik doğrulamasını tamamlayın.');
+      return;
+    }
+
     if (!isValid) return;
+
+    // Güvenlik kontrolü
+    try {
+      const securityManager = SecurityManager.getInstance();
+      const securityCheck = await securityManager.checkSecurityLimits('register', email);
+      
+      if (!securityCheck.allowed) {
+        Alert.alert('Güvenlik Uyarısı', securityCheck.reason);
+        return;
+      }
+    } catch (error) {
+      console.error('Güvenlik kontrolü hatası:', error);
+    }
 
     setLoading(true);
     try {
@@ -105,6 +127,14 @@ const RegisterScreen = () => {
       // Kullanıcıyı çıkış yap ki email doğrulaması sonrası temiz giriş yapabilsin
       await signOut(auth);
 
+      // Başarılı kayıt kaydı
+      try {
+        const securityManager = SecurityManager.getInstance();
+        await securityManager.recordAttempt('register', true, email);
+      } catch (error) {
+        console.error('Başarılı kayıt kaydı hatası:', error);
+      }
+
       Alert.alert(
         'Kayıt Başarılı!', 
         `${email} adresine doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin ve doğrulama linkine tıklayın. Doğrulama sonrası giriş yapabilirsiniz.`,
@@ -116,6 +146,18 @@ const RegisterScreen = () => {
         ]
       );
     } catch (error) {
+      // Reset captcha on failed registration attempt
+      setCaptchaResetTrigger(prev => prev + 1);
+      setIsCaptchaVerified(false);
+      
+      // Başarısız kayıt kaydı
+      try {
+        const securityManager = SecurityManager.getInstance();
+        await securityManager.recordAttempt('register', false, email);
+      } catch (securityError) {
+        console.error('Başarısız kayıt kaydı hatası:', securityError);
+      }
+      
       switch (error.code) {
         case 'auth/email-already-in-use':
           setEmailError('Bu e-posta adresi zaten kullanılıyor.');
@@ -138,15 +180,15 @@ const RegisterScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" backgroundColor="transparent" translucent />
+      <StatusBar style="dark" backgroundColor={COLORS.lightGreen} translucent={false} />
+      <LinearGradient
+        colors={[COLORS.lightGreen, COLORS.white]}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={styles.container}
       >
-        <LinearGradient
-          colors={[COLORS.lightGreen, COLORS.white]}
-          style={StyleSheet.absoluteFillObject} // Position gradient behind content
-        />
         <ScrollView contentContainerStyle={styles.innerContainer}>
         <Image source={require('../assets/images/medicinetrackerlogo.png')} style={styles.logo} />
         <Text style={styles.appName}>İlaç Takip</Text>
@@ -187,6 +229,11 @@ const RegisterScreen = () => {
           placeholderTextColor={COLORS.gray}
         />
         {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
+        <SimpleCaptcha 
+          onVerified={setIsCaptchaVerified}
+          resetTrigger={captchaResetTrigger}
+        />
 
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />

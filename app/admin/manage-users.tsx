@@ -12,6 +12,7 @@ import {
     SafeAreaView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -33,6 +34,8 @@ interface User {
 const ManageUsersScreen = () => {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -109,6 +112,7 @@ const ManageUsersScreen = () => {
       });
       
       setUsers(usersList);
+      setFilteredUsers(usersList); // Arama için filtrelenmiş listeyi de set et
     } catch (error) {
       console.error('Kullanıcılar yüklenirken hata:', error);
       Alert.alert('Hata', 'Kullanıcılar yüklenirken bir sorun oluştu.');
@@ -127,6 +131,26 @@ const ManageUsersScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchUsers();
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => 
+        user.email.toLowerCase().includes(query.toLowerCase()) ||
+        user.name.toLowerCase().includes(query.toLowerCase()) ||
+        user.surname.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setFilteredUsers(users);
   };
 
   const manualEmailVerification = async (targetUser: User) => {
@@ -296,8 +320,34 @@ const ManageUsersScreen = () => {
         </TouchableOpacity>
       </View>
       
+      {/* Search Section */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search-outline" size={20} color={COLORS.gray} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Email, ad veya soyad ile ara..."
+            placeholderTextColor={COLORS.gray}
+            value={searchQuery}
+            onChangeText={handleSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {searchQuery.length > 0 && (
+          <Text style={styles.searchResultText}>
+            {filteredUsers.length} sonuç bulundu
+          </Text>
+        )}
+      </View>
+      
       <FlatList
-        data={users}
+        data={filteredUsers}
         keyExtractor={(item) => item.uid}
         renderItem={renderUser}
         contentContainerStyle={styles.listContainer}
@@ -307,7 +357,9 @@ const ManageUsersScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={64} color={COLORS.gray} />
-            <Text style={styles.emptyText}>Henüz kullanıcı bulunmuyor</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery.length > 0 ? 'Arama sonucu bulunamadı' : 'Henüz kullanıcı bulunmuyor'}
+            </Text>
           </View>
         }
       />
@@ -350,6 +402,45 @@ const styles = StyleSheet.create({
     fontSize: SIZES.extraLarge,
     fontFamily: FONTS.bold,
     color: COLORS.accent,
+    textAlign: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: SIZES.large,
+    marginBottom: SIZES.medium,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.medium,
+    paddingHorizontal: SIZES.medium,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    shadowColor: COLORS.gray,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: SIZES.base,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: SIZES.medium,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    color: COLORS.darkGray,
+  },
+  clearButton: {
+    padding: SIZES.base,
+    marginLeft: SIZES.base,
+  },
+  searchResultText: {
+    marginTop: SIZES.small,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.regular,
+    color: COLORS.gray,
     textAlign: 'center',
   },
   listContainer: {

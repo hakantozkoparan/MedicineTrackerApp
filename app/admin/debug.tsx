@@ -1,16 +1,17 @@
 import { auth, db } from '@/api/firebase';
+import SecurityManager from '@/utils/SecurityManager';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -63,46 +64,31 @@ const DebugScreen = () => {
     };
   }, []);
 
-  const fixUserEmail = async () => {
-    if (!isAdmin) {
-      Alert.alert('Hata', 'Bu işlem için admin yetkisi gerekli.');
-      return;
-    }
-
+  const clearMyDeviceSecurity = async () => {
     Alert.alert(
-      'Email Doğrulama Düzeltme',
-      'baybarsaltayme@gmail.com kullanıcısının emailVerified durumunu true yapmak istediğinize emin misiniz?',
+      'Cihaz Güvenlik Verileri Temizle',
+      'Kendi cihazınızın tüm güvenlik kayıtlarını silmek istediğinizden emin misiniz?',
       [
-        { text: 'İptal', style: 'cancel' },
         {
-          text: 'Onayla',
+          text: 'İptal',
+          style: 'cancel'
+        },
+        {
+          text: 'Temizle',
+          style: 'destructive',
           onPress: async () => {
             try {
-              // Bu kullanıcının UID'sini bilmemiz gerekiyor
-              // Önce users koleksiyonundan email ile bulalım
-              const { collection, query, where, getDocs } = await import('firebase/firestore');
+              const securityManager = SecurityManager.getInstance();
+              const deviceId = await securityManager.getDeviceId();
+              const success = await securityManager.unblockDevice(deviceId);
               
-              const usersRef = collection(db, 'users');
-              const q = query(usersRef, where('email', '==', 'baybarsaltayme@gmail.com'));
-              const querySnapshot = await getDocs(q);
-              
-              if (querySnapshot.empty) {
-                Alert.alert('Hata', 'Kullanıcı bulunamadı.');
-                return;
+              if (success) {
+                Alert.alert('Başarılı!', 'Cihazınızın güvenlik kayıtları temizlendi.');
+              } else {
+                Alert.alert('Hata', 'Güvenlik kayıtları temizlenemedi.');
               }
-
-              const userDoc = querySnapshot.docs[0];
-              const userRef = doc(db, 'users', userDoc.id);
-              
-              await updateDoc(userRef, {
-                emailVerified: true,
-                fixedBy: auth.currentUser?.email || 'admin',
-                fixedAt: new Date()
-              });
-
-              Alert.alert('Başarılı!', 'Kullanıcının emailVerified durumu true yapıldı.');
             } catch (error: any) {
-              console.error('Düzeltme hatası:', error);
+              console.error('Güvenlik temizleme hatası:', error);
               Alert.alert('Hata', 'İşlem başarısız: ' + error.message);
             }
           }
@@ -131,13 +117,23 @@ const DebugScreen = () => {
       
       <View style={styles.content}>
         <Text style={styles.description}>
-          baybarsaltayme@gmail.com kullanıcısının emailVerified durumu false gözüküyor
-          ancak manuel doğrulama yapılmış. Bu butona basarak düzeltebilirsiniz.
+          Admin Debug Paneli - Güvenlik sistemi test ve yönetim araçları
         </Text>
         
-        <TouchableOpacity style={styles.fixButton} onPress={fixUserEmail}>
-          <Ionicons name="build-outline" size={20} color={COLORS.white} />
-          <Text style={styles.fixButtonText}>EmailVerified Durumunu Düzelt</Text>
+        <TouchableOpacity 
+          style={[styles.fixButton, { backgroundColor: COLORS.accent }]} 
+          onPress={() => router.push('/admin/security-report')}
+        >
+          <Ionicons name="shield-outline" size={20} color={COLORS.white} />
+          <Text style={styles.fixButtonText}>Güvenlik Raporu</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.fixButton, { backgroundColor: COLORS.success, marginTop: SIZES.medium }]} 
+          onPress={clearMyDeviceSecurity}
+        >
+          <Ionicons name="key-outline" size={20} color={COLORS.white} />
+          <Text style={styles.fixButtonText}>Kendi Cihaz Engelini Kaldır</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -180,7 +176,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.accent,
     paddingVertical: SIZES.medium,
     paddingHorizontal: SIZES.large,
     borderRadius: SIZES.medium,

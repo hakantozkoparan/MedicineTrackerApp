@@ -16,6 +16,9 @@ export const COLORS = {
   warning: '#FFCC00',
   success: '#34C759',
   background: '#F8F9FA',
+  
+  // Yeşil tonları için lightGreen
+  lightGreen: '#E8F5E8',
 };
 
 export const SIZES = {

@@ -1,36 +1,48 @@
 import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 
 interface SupportTicket {
   id: string;
-  userId: string;
-  userEmail: string;
+  userId?: string; // support_tickets'ta olmayabilir
+  userEmail?: string; // support_tickets'ta email olarak gelir
+  email?: string; // support_tickets'tan gelen email field
   subject: string;
-  description: string;
+  description?: string; // supportTickets'ta description
+  message?: string; // support_tickets'ta message
   status: string;
+  priority?: string; // support_tickets'ta priority var
+  source: string; // hangi koleksiyondan geldiğini belirtir - required
   createdAt: any;
 }
 
 const AdminTicketsScreen = () => {
   const router = useRouter();
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [allTickets, setAllTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState<'open' | 'closed'>('open');
+
+  // Filtered tickets based on active tab
+  const filteredTickets = allTickets.filter(ticket => {
+    return activeTab === 'open' ? 
+      ticket.status === 'open' || ticket.status === 'pending' : 
+      ticket.status === 'closed' || ticket.status === 'resolved';
+  });
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -42,28 +54,79 @@ const AdminTicketsScreen = () => {
         return;
       }
 
+      let unsubscribeSupportTickets: (() => void) | null = null;
+      let unsubscribeLoginTickets: (() => void) | null = null;
+
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data();
           if (userData.role === 'admin') {
             setIsAdmin(true);
-            // Fetch tickets only if admin
-            const ticketsCollectionRef = collection(db, 'supportTickets');
-            const q = query(ticketsCollectionRef, orderBy('createdAt', 'desc'));
-            const unsubscribeTickets = onSnapshot(q, (querySnapshot) => {
-              const fetchedTickets = querySnapshot.docs.map(doc => ({
+            
+            // Birleştirme fonksiyonu
+            let supportTicketsData: SupportTicket[] = [];
+            let loginTicketsData: SupportTicket[] = [];
+            
+            const updateCombinedTickets = (newTickets: SupportTicket[], source: string) => {
+              if (source === 'supportTickets') {
+                supportTicketsData = newTickets;
+              } else {
+                loginTicketsData = newTickets;
+              }
+              
+              // İki koleksiyonu birleştir ve tarihe göre sırala
+              const combined = [...supportTicketsData, ...loginTicketsData];
+              combined.sort((a, b) => {
+                const aDate = a.createdAt?.toDate?.() || a.createdAt;
+                const bDate = b.createdAt?.toDate?.() || b.createdAt;
+                return bDate - aDate;
+              });
+              
+              setAllTickets(combined);
+              setLoading(false);
+            };
+            
+            // supportTickets koleksiyonu (giriş yapan kullanıcılar)
+            const supportTicketsRef = collection(db, 'supportTickets');
+            const q1 = query(supportTicketsRef, orderBy('createdAt', 'desc'));
+            unsubscribeSupportTickets = onSnapshot(q1, (querySnapshot) => {
+              const supportTickets = querySnapshot.docs.map(doc => ({
                 id: doc.id,
+                source: 'authenticated_user', // Nereden geldiğini belirt
                 ...doc.data(),
               })) as SupportTicket[];
-              setTickets(fetchedTickets);
-              setLoading(false);
+              
+              // İki koleksiyonu birleştir
+              updateCombinedTickets(supportTickets, 'supportTickets');
             }, (error) => {
-              console.error("Error fetching tickets:", error);
-              Alert.alert("Hata", "Destek talepleri alınırken bir sorun oluştu.");
-              setLoading(false);
+              if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+                console.log('Kullanıcı çıkış yapmış, supportTickets listener kapatılıyor.');
+                return;
+              }
+              console.error("Error fetching supportTickets:", error);
             });
-            return () => unsubscribeTickets();
+            
+            // support_tickets koleksiyonu (login sayfasından)
+            const loginTicketsRef = collection(db, 'support_tickets');
+            const q2 = query(loginTicketsRef, orderBy('createdAt', 'desc'));
+            unsubscribeLoginTickets = onSnapshot(q2, (querySnapshot) => {
+              const loginTickets = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                source: 'login_page', // Nereden geldiğini belirt
+                ...doc.data(),
+              })) as SupportTicket[];
+              
+              // İki koleksiyonu birleştir
+              updateCombinedTickets(loginTickets, 'support_tickets');
+            }, (error) => {
+              if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+                console.log('Kullanıcı çıkış yapmış, support_tickets listener kapatılıyor.');
+                return;
+              }
+              console.error("Error fetching support_tickets:", error);
+            });
+            
           } else {
             setIsAdmin(false);
             setLoading(false);
@@ -79,7 +142,7 @@ const AdminTicketsScreen = () => {
       }, (error) => {
         // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
         if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-          console.log('Kullanıcı çıkış yapmış, tickets listener kapatılıyor.');
+          console.log('Kullanıcı çıkış yapmış, user listener kapatılıyor.');
           setLoading(false);
           return;
         }
@@ -91,8 +154,14 @@ const AdminTicketsScreen = () => {
       return () => {
         try {
           unsubscribeUser();
+          if (unsubscribeSupportTickets) {
+            unsubscribeSupportTickets();
+          }
+          if (unsubscribeLoginTickets) {
+            unsubscribeLoginTickets();
+          }
         } catch (error) {
-          console.log("Tickets listener already unsubscribed");
+          console.log("Listeners already unsubscribed");
         }
       };
     };
@@ -100,15 +169,73 @@ const AdminTicketsScreen = () => {
     checkAdminStatus();
   }, [router]);
 
-  const renderTicketItem = ({ item }: { item: SupportTicket }) => (
-    <View style={styles.card}>
-      <Text style={styles.cardSubject}>{item.subject}</Text>
-      <Text style={styles.cardDescription}>{item.description}</Text>
-      <Text style={styles.cardInfo}>Gönderen: {item.userEmail}</Text>
-      <Text style={styles.cardInfo}>Durum: {item.status}</Text>
-      <Text style={styles.cardInfo}>Tarih: {new Date(item.createdAt?.toDate()).toLocaleString()}</Text>
-    </View>
-  );
+  const updateTicketStatus = async (ticketId: string, newStatus: string, source: string) => {
+    try {
+      const collectionName = source === 'login_page' ? 'support_tickets' : 'supportTickets';
+      const ticketRef = doc(db, collectionName, ticketId);
+      await updateDoc(ticketRef, {
+        status: newStatus,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      Alert.alert('Hata', 'Durum güncellenirken bir sorun oluştu.');
+    }
+  };
+
+  const renderTicketItem = ({ item }: { item: SupportTicket }) => {
+    // Field adları farklı olduğu için uygun olanı seç
+    const email = item.email || item.userEmail || 'Bilinmiyor';
+    const content = item.message || item.description || 'İçerik bulunamadı';
+    const sourceLabel = item.source === 'login_page' ? '🌐 İletişim Formu' : '👤 Profil Sayfası';
+    
+    const isOpen = item.status === 'open' || item.status === 'pending';
+    
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardSubject}>{item.subject}</Text>
+          <Text style={styles.sourceLabel}>{sourceLabel}</Text>
+        </View>
+        <Text style={styles.cardDescription}>{content}</Text>
+        <View style={styles.cardInfoContainer}>
+          <Text style={styles.cardInfo}>📧 {email}</Text>
+          <Text style={styles.cardInfo}>📊 Durum: {item.status}</Text>
+          {item.priority && <Text style={styles.cardInfo}>⚡ Öncelik: {item.priority}</Text>}
+          <Text style={styles.cardInfo}>📅 {formatDate(item.createdAt)}</Text>
+        </View>
+        
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          {isOpen ? (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.closeButton]}
+              onPress={() => updateTicketStatus(item.id, 'closed', item.source)}
+            >
+              <Text style={styles.actionButtonText}>Kapat</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.openButton]}
+              onPress={() => updateTicketStatus(item.id, 'open', item.source)}
+            >
+              <Text style={styles.actionButtonText}>Yeniden Aç</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Tarih bilinmiyor';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('tr-TR');
+    } catch (error) {
+      return 'Geçersiz tarih';
+    }
+  };
 
   if (loading) {
     return (
@@ -138,14 +265,37 @@ const AdminTicketsScreen = () => {
         <Text style={styles.title}>Destek Talepleri</Text>
         <View style={{ width: 28 }} />
       </View>
+      
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'open' && styles.activeTab]}
+          onPress={() => setActiveTab('open')}
+        >
+          <Text style={[styles.tabText, activeTab === 'open' && styles.activeTabText]}>
+            Açık Talepler ({allTickets.filter(t => t.status === 'open' || t.status === 'pending').length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'closed' && styles.activeTab]}
+          onPress={() => setActiveTab('closed')}
+        >
+          <Text style={[styles.tabText, activeTab === 'closed' && styles.activeTabText]}>
+            Kapalı Talepler ({allTickets.filter(t => t.status === 'closed' || t.status === 'resolved').length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
       <FlatList
-        data={tickets}
+        data={filteredTickets}
         renderItem={renderTicketItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContentContainer}
         ListEmptyComponent={() => (
           <View style={styles.centered}>
-            <Text style={styles.emptyText}>Henüz hiç destek talebi yok.</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === 'open' ? 'Açık talep bulunmuyor.' : 'Kapalı talep bulunmuyor.'}
+            </Text>
           </View>
         )}
       />
@@ -198,12 +348,35 @@ const styles = StyleSheet.create({
     fontSize: SIZES.large,
     color: COLORS.darkGray,
     marginBottom: SIZES.base / 2,
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SIZES.base / 2,
+  },
+  sourceLabel: {
+    fontFamily: FONTS.semiBold,
+    fontSize: SIZES.small,
+    color: COLORS.primary,
+    backgroundColor: COLORS.lightGray,
+    paddingHorizontal: SIZES.base,
+    paddingVertical: SIZES.base / 2,
+    borderRadius: SIZES.base,
+    marginLeft: SIZES.base,
   },
   cardDescription: {
     fontFamily: FONTS.regular,
     fontSize: SIZES.font,
     color: COLORS.gray,
     marginBottom: SIZES.base,
+  },
+  cardInfoContainer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    paddingTop: SIZES.base,
+    gap: SIZES.base / 2,
   },
   cardInfo: {
     fontFamily: FONTS.semiBold,
@@ -227,6 +400,60 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontFamily: FONTS.semiBold,
     fontSize: SIZES.medium,
+  },
+  // Tab styles
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: SIZES.large,
+    marginBottom: SIZES.medium,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: SIZES.radius,
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: SIZES.medium,
+    paddingHorizontal: SIZES.large,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: SIZES.medium,
+    color: COLORS.darkGray,
+  },
+  activeTabText: {
+    color: COLORS.white,
+  },
+  // Action button styles
+  actionButtons: {
+    flexDirection: 'row',
+    marginTop: SIZES.medium,
+    paddingTop: SIZES.medium,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    gap: SIZES.base,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: SIZES.base,
+    paddingHorizontal: SIZES.medium,
+    borderRadius: SIZES.base,
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: COLORS.danger,
+  },
+  openButton: {
+    backgroundColor: COLORS.primary,
+  },
+  actionButtonText: {
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+    fontSize: SIZES.small,
   },
 });
 
