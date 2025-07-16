@@ -1,18 +1,17 @@
 import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  ActivityIndicator,
-  FlatList,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -69,7 +68,7 @@ const AdminTicketsScreen = () => {
             setIsAdmin(false);
             setLoading(false);
             Alert.alert("Erişim Reddedildi", "Bu sayfaya erişim yetkiniz yok.");
-            router.back();
+            router.replace('/login');
           }
         } else {
           setIsAdmin(false);
@@ -78,12 +77,24 @@ const AdminTicketsScreen = () => {
           router.replace('/login');
         }
       }, (error) => {
+        // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
+        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+          console.log('Kullanıcı çıkış yapmış, tickets listener kapatılıyor.');
+          setLoading(false);
+          return;
+        }
         console.error("Error listening to user data:", error);
         Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
         setLoading(false);
       });
 
-      return () => unsubscribeUser();
+      return () => {
+        try {
+          unsubscribeUser();
+        } catch (error) {
+          console.log("Tickets listener already unsubscribed");
+        }
+      };
     };
 
     checkAdminStatus();

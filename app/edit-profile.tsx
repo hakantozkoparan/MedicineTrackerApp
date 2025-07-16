@@ -1,9 +1,11 @@
 import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential, sendEmailVerification, signOut, updateEmail } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
@@ -12,7 +14,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -30,6 +31,11 @@ const EditProfileScreen = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -44,19 +50,55 @@ const EditProfileScreen = () => {
         const userData = docSnap.data();
         setName(userData.name || '');
         setSurname(userData.surname || '');
-        setEmail(userData.email || '');
+        setEmail(userData.email || user.email || '');
+        setOriginalEmail(user.email || '');
+        setIsAdmin(userData.role === 'admin');
+        
+        // Hibrit email verification kontrolü
+        const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
+        const finalEmailVerified = user.emailVerified || isManuallyVerified;
+        setEmailVerified(finalEmailVerified);
+        
+        console.log('📝 Edit-profile verification check:', {
+          firebaseEmailVerified: user.emailVerified,
+          firestoreEmailVerified: userData.emailVerified,
+          manuallyVerified: isManuallyVerified,
+          emailVerifiedBy: userData.emailVerifiedBy,
+          emailVerifiedAt: userData.emailVerifiedAt,
+          finalEmailVerified: finalEmailVerified,
+          userEmail: user.email
+        });
       } else {
-        Alert.alert("Hata", "Kullanıcı bilgileri bulunamadı.");
-        router.back();
+        console.log("No such user document!");
+        // Kullanıcı belgesi yoksa, Firebase Auth'daki bilgileri kullan
+        setName('');
+        setSurname('');
+        setEmail(user.email || '');
+        setOriginalEmail(user.email || '');
+        setIsAdmin(false);
+        setEmailVerified(user.emailVerified);
       }
       setLoading(false);
     }, (error) => {
+      // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
+      if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+        console.log("Kullanıcı çıkış yapmış veya yetki yok, listener kapatılıyor.");
+        setLoading(false);
+        return;
+      }
       console.error("Error fetching user data:", error);
       Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      try {
+        unsubscribe();
+      } catch (error) {
+        // Listener zaten kapalıysa hata vermesin
+        console.log("Listener already unsubscribed");
+      }
+    };
   }, [router]);
 
   const validate = () => {
@@ -70,6 +112,87 @@ const EditProfileScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Doğrulama maili yeniden gönder
+  const resendVerificationEmail = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      await sendEmailVerification(user);
+      Alert.alert(
+        'Doğrulama Maili Gönderildi!', 
+        `${user.email} adresine yeni bir doğrulama maili gönderildi. Lütfen e-posta kutunuzu ve spam klasörünüzü kontrol edin.`
+      );
+    } catch (error: any) {
+      console.error('Doğrulama maili gönderme hatası:', error);
+      Alert.alert('Hata', 'Doğrulama maili gönderilirken bir hata oluştu.');
+    }
+  };
+
+  // Admin tarafından manuel email doğrulama
+  const manualEmailVerification = async () => {
+    const user = auth.currentUser;
+    if (!user || !isAdmin) return;
+
+    Alert.alert(
+      'Manuel Email Doğrulama',
+      'Bu kullanıcının email adresini manuel olarak doğrulanmış olarak işaretlemek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Onayla',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Firestore'da güncelle
+              const userDocRef = doc(db, 'users', user.uid);
+              await updateDoc(userDocRef, {
+                emailVerified: true,
+                emailVerifiedBy: 'admin',
+                emailVerifiedAt: new Date()
+              }).catch(async (firestoreError) => {
+                if (firestoreError.code === 'not-found') {
+                  await setDoc(userDocRef, {
+                    name,
+                    surname,
+                    email,
+                    uid: user.uid,
+                    emailVerified: true,
+                    emailVerifiedBy: 'admin',
+                    emailVerifiedAt: new Date(),
+                    createdAt: new Date()
+                  });
+                } else {
+                  throw firestoreError;
+                }
+              });
+
+              Alert.alert(
+                'Başarılı!', 
+                'Email adresi manuel olarak doğrulandı. Kullanıcı artık giriş yapabilir.',
+                [
+                  {
+                    text: 'Tamam',
+                    onPress: () => {
+                      try {
+                        router.back();
+                      } catch (error) {
+                        router.replace('/(tabs)/profile');
+                      }
+                    }
+                  }
+                ]
+              );
+            } catch (error: any) {
+              console.error('Manuel doğrulama hatası:', error);
+              Alert.alert('Hata', 'Manuel doğrulama işlemi başarısız oldu.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleSave = async () => {
     if (!validate()) {
       return;
@@ -81,19 +204,144 @@ const EditProfileScreen = () => {
       return;
     }
 
+    const emailChanged = originalEmail !== email;
+
+    // E-posta değişiyorsa şifre isteyeceğiz
+    if (emailChanged && !password) {
+      setShowPasswordPrompt(true);
+      return;
+    }
+
     try {
       const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        name,
-        surname,
-        email,
-      });
 
-      Alert.alert('Başarılı', 'Hesap bilgileri güncellendi.');
-      router.back();
-    } catch (error) {
+      // E-posta değiştiyse Firebase Authentication'ı güncelle
+      if (emailChanged) {
+        // Önce kullanıcıyı yeniden kimlik doğrulaması yap
+        const credential = EmailAuthProvider.credential(originalEmail, password);
+        await reauthenticateWithCredential(user, credential);
+        
+        try {
+          // Firebase Authentication'da email'i güncelle
+          await updateEmail(user, email);
+          
+          // Email güncellendi, yeni email'e doğrulama gönder
+          await sendEmailVerification(user);
+          
+          // Firestore'daki kullanıcı bilgilerini güncelle
+          await updateDoc(userDocRef, {
+            name,
+            surname,
+            email,
+            emailVerified: false, // Yeni email doğrulanmamış
+            emailChangedAt: new Date()
+          }).catch(async (firestoreError) => {
+            // Belge yoksa oluştur
+            if (firestoreError.code === 'not-found') {
+              await setDoc(userDocRef, {
+                name,
+                surname,
+                email,
+                uid: user.uid,
+                emailVerified: false,
+                emailChangedAt: new Date(),
+                createdAt: new Date()
+              });
+            } else {
+              throw firestoreError;
+            }
+          });
+
+          Alert.alert(
+            'Email Güncellendi!', 
+            `E-posta adresiniz ${email} olarak güncellendi ve yeni adresinize doğrulama e-postası gönderildi.\n\nLütfen yeni e-posta adresinizi doğrulayın. Doğrulama sonrası yeni email ile giriş yapabileceksiniz.\n\nŞimdi çıkış yapılacak.`,
+            [
+              {
+                text: 'Tamam',
+                onPress: async () => {
+                  await signOut(auth);
+                  router.replace('/login');
+                }
+              }
+            ]
+          );
+        } catch (emailError: any) {
+          console.error('Email güncelleme hatası:', emailError);
+          
+          if (emailError.code === 'auth/email-already-in-use') {
+            Alert.alert('Hata', 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.');
+            setErrors(prev => ({ ...prev, email: 'Bu e-posta adresi zaten kullanımda.' }));
+          } else if (emailError.code === 'auth/invalid-email') {
+            Alert.alert('Hata', 'Geçersiz e-posta adresi formatı.');
+            setErrors(prev => ({ ...prev, email: 'Geçersiz e-posta adresi.' }));
+          } else if (emailError.code === 'auth/operation-not-allowed') {
+            Alert.alert(
+              'Email Değişikliği Mümkün Değil',
+              'Firebase yapılandırması nedeniyle email değişikliği şu anda desteklenmiyor. Lütfen yönetici ile iletişime geçin.',
+              [{ text: 'Tamam' }]
+            );
+          } else {
+            Alert.alert('Hata', 'Email güncellenirken bir hata oluştu: ' + emailError.message);
+          }
+          return;
+        }
+      } else {
+        // E-posta değişmiyorsa sadece diğer bilgileri güncelle
+        await updateDoc(userDocRef, {
+          name,
+          surname,
+          email,
+        }).catch(async (firestoreError) => {
+          // Belge yoksa oluştur
+          if (firestoreError.code === 'not-found') {
+            await setDoc(userDocRef, {
+              name,
+              surname,
+              email,
+              uid: user.uid,
+              createdAt: new Date()
+            });
+          } else {
+            throw firestoreError;
+          }
+        });
+
+        Alert.alert('Başarılı', 'Hesap bilgileri güncellendi.');
+        router.back();
+      }
+    } catch (error: any) {
       console.error('Error updating profile: ', error);
-      Alert.alert('Hata', 'Hesap bilgileri güncellenirken bir sorun oluştu.');
+      
+      let errorMessage = 'Hesap bilgileri güncellenirken bir sorun oluştu.';
+      
+      if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Girdiğiniz şifre hatalı.';
+        setErrors(prev => ({ ...prev, password: 'Girdiğiniz şifre hatalı.' }));
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Bu e-posta adresi zaten kullanımda.';
+        setErrors(prev => ({ ...prev, email: 'Bu e-posta adresi zaten kullanımda.' }));
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Geçersiz e-posta adresi.';
+        setErrors(prev => ({ ...prev, email: 'Geçersiz e-posta adresi.' }));
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = 'Güvenlik nedeniyle yeniden giriş yapmanız gerekiyor.';
+        Alert.alert(
+          'Yeniden Giriş Gerekli',
+          'Güvenlik nedeniyle yeniden giriş yapmanız gerekiyor.',
+          [
+            {
+              text: 'Tamam',
+              onPress: async () => {
+                await signOut(auth);
+                router.replace('/login');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
+      Alert.alert('Hata', errorMessage);
     }
   };
 
@@ -154,10 +402,77 @@ const EditProfileScreen = () => {
             placeholderTextColor={COLORS.gray}
           />
           {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+          
+          {/* Email Doğrulama Durumu */}
+          <View style={styles.emailStatusContainer}>
+            <View style={styles.emailStatusRow}>
+              <Ionicons 
+                name={emailVerified ? "checkmark-circle" : "warning"} 
+                size={20} 
+                color={emailVerified ? COLORS.success : COLORS.warning} 
+              />
+              <Text style={[styles.emailStatusText, { color: emailVerified ? COLORS.success : COLORS.warning }]}>
+                {emailVerified ? 'Email Doğrulanmış ✓' : 'Email Doğrulanmamış ⚠️'}
+              </Text>
+            </View>
+            
+            {!emailVerified && (
+              <TouchableOpacity 
+                style={styles.resendButton} 
+                onPress={resendVerificationEmail}
+              >
+                <Ionicons name="mail-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.resendButtonText}>Doğrulama Maili Gönder</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Admin Manuel Doğrulama */}
+            {isAdmin && !emailVerified && (
+              <TouchableOpacity 
+                style={styles.adminButton} 
+                onPress={manualEmailVerification}
+              >
+                <Ionicons name="shield-checkmark-outline" size={16} color={COLORS.white} />
+                <Text style={styles.adminButtonText}>Manuel Doğrula (Admin)</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
+        
+        {showPasswordPrompt && (
+          <View style={styles.formGroup}>
+            <LabelWithInfo label="Mevcut Şifre" infoText="E-posta değişikliği için mevcut şifrenizi girin." />
+            <TextInput
+              style={[styles.input, errors.password ? styles.inputError : null]}
+              placeholder="Mevcut Şifreniz"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+              }}
+              secureTextEntry
+              placeholderTextColor={COLORS.gray}
+            />
+            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+          </View>
+        )}
+        
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Kaydet</Text>
         </TouchableOpacity>
+        
+        {showPasswordPrompt && (
+          <TouchableOpacity 
+            style={[styles.saveButton, { backgroundColor: COLORS.gray, marginTop: SIZES.base }]} 
+            onPress={() => {
+              setShowPasswordPrompt(false);
+              setPassword('');
+              setErrors(prev => ({ ...prev, password: '' }));
+            }}
+          >
+            <Text style={styles.saveButtonText}>İptal</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -193,6 +508,54 @@ const styles = StyleSheet.create({
   errorText: { color: COLORS.danger, marginTop: SIZES.base, fontSize: SIZES.small, fontFamily: FONTS.regular },
   saveButton: { backgroundColor: COLORS.accent, paddingVertical: SIZES.medium, paddingHorizontal: SIZES.medium, alignItems: 'center', justifyContent: 'center', borderRadius: SIZES.radius, marginTop: SIZES.large },
   saveButtonText: { fontFamily: FONTS.bold, fontSize: SIZES.medium, color: COLORS.white },
+  // Email doğrulama stilleri
+  emailStatusContainer: {
+    marginTop: SIZES.base,
+    padding: SIZES.medium,
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.base,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  emailStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.base,
+  },
+  emailStatusText: {
+    marginLeft: SIZES.base,
+    fontFamily: FONTS.regular,
+    fontSize: SIZES.medium,
+  },
+  resendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    paddingVertical: SIZES.base,
+    paddingHorizontal: SIZES.medium,
+    borderRadius: SIZES.base,
+    marginBottom: SIZES.base,
+  },
+  resendButtonText: {
+    marginLeft: SIZES.base,
+    fontFamily: FONTS.regular,
+    fontSize: SIZES.small,
+    color: COLORS.primary,
+  },
+  adminButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.danger,
+    paddingVertical: SIZES.base,
+    paddingHorizontal: SIZES.medium,
+    borderRadius: SIZES.base,
+  },
+  adminButtonText: {
+    marginLeft: SIZES.base,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.small,
+    color: COLORS.white,
+  },
 });
 
 export default EditProfileScreen;

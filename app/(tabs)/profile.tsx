@@ -33,9 +33,22 @@ export default function ProfileScreen() {
             console.log("Kullanıcı belgesi bulunamadı!");
             setIsAdmin(false);
           }
+        }, (error) => {
+          // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
+          if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+            console.log("Kullanıcı çıkış yapmış veya yetki yok, profile listener kapatılıyor.");
+            return;
+          }
+          console.error("Profile snapshot error:", error);
         });
 
-        return () => docUnsubscribe();
+        return () => {
+          try {
+            docUnsubscribe();
+          } catch (error) {
+            console.log("Profile listener already unsubscribed");
+          }
+        };
       } else {
         setUserName('');
         setUserSurname('');
@@ -45,7 +58,13 @@ export default function ProfileScreen() {
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      try {
+        unsubscribeAuth();
+      } catch (error) {
+        console.log("Auth listener already unsubscribed");
+      }
+    };
   }, [auth, router]);
 
 
@@ -86,6 +105,30 @@ export default function ProfileScreen() {
         <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
         
         <View style={styles.menuContainer}>
+          {isAdmin && (
+            <ProfileMenuItem
+              icon="people-outline"
+              title="Kullanıcı Yönetimi"
+              onPress={() => router.push('/admin/manage-users')}
+              textColor={COLORS.danger} // Kırmızı renk
+            />
+          )}
+          {isAdmin && (
+            <ProfileMenuItem
+              icon="build-outline"
+              title="Debug Panel"
+              onPress={() => router.push('/admin/debug')}
+              textColor={COLORS.warning} // Sarı renk
+            />
+          )}
+          {isAdmin && (
+            <ProfileMenuItem
+              icon="mail-outline"
+              title="Bildirim Gönder"
+              onPress={() => router.push('/admin/send-notification')}
+              textColor={COLORS.danger} // Kırmızı renk
+            />
+          )}
           {isAdmin && (
             <ProfileMenuItem
               icon="settings-outline"

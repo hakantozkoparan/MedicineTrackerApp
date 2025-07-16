@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { auth, db } from '@/api/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
+import { StatusBar } from 'expo-status-bar';
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import Constants from 'expo-constants';
-import { COLORS, SIZES, FONTS } from '@/constants/theme';
+import { useRouter } from 'expo-router';
 
 const RegisterScreen = () => {
   const router = useRouter();
@@ -95,9 +96,25 @@ const RegisterScreen = () => {
           deviceName: Device.deviceName,
         },
         role: 'member',
+        emailVerified: false,
       });
 
-      router.replace('/(tabs)');
+      // Email doğrulama gönder
+      await sendEmailVerification(user);
+
+      // Kullanıcıyı çıkış yap ki email doğrulaması sonrası temiz giriş yapabilsin
+      await signOut(auth);
+
+      Alert.alert(
+        'Kayıt Başarılı!', 
+        `${email} adresine doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin ve doğrulama linkine tıklayın. Doğrulama sonrası giriş yapabilirsiniz.`,
+        [
+          {
+            text: 'Tamam',
+            onPress: () => router.replace('/login')
+          }
+        ]
+      );
     } catch (error) {
       switch (error.code) {
         case 'auth/email-already-in-use':
@@ -120,15 +137,18 @@ const RegisterScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"} 
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[COLORS.lightGreen, COLORS.white]}
-        style={StyleSheet.absoluteFillObject} // Position gradient behind content
-      />
-      <ScrollView contentContainerStyle={styles.innerContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" backgroundColor="transparent" translucent />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[COLORS.lightGreen, COLORS.white]}
+          style={StyleSheet.absoluteFillObject} // Position gradient behind content
+        />
+        <ScrollView contentContainerStyle={styles.innerContainer}>
+        <Image source={require('../assets/images/medicinetrackerlogo.png')} style={styles.logo} />
         <Text style={styles.appName}>İlaç Takip</Text>
         <Text style={styles.title}>Kayıt Ol</Text>
 
@@ -188,11 +208,16 @@ const RegisterScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.lightGreen,
+  },
   container: {
     flex: 1,
   },
@@ -207,6 +232,12 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontFamily: FONTS.bold,
     color: COLORS.primary,
+    marginBottom: SIZES.medium,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
     marginBottom: SIZES.medium,
   },
   title: {

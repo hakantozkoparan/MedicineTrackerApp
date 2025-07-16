@@ -1,0 +1,193 @@
+import { auth, db } from '@/api/firebase';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { collection, getDocs, query } from 'firebase/firestore';
+import React, { useState } from 'react';
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+
+const SendNotificationScreen = () => {
+  const router = useRouter();
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!title.trim()) newErrors.title = 'Başlık alanı zorunludur.';
+    if (!body.trim()) newErrors.body = 'İçerik alanı zorunludur.';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) {
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Hata', 'Bildirim göndermek için giriş yapmalısınız.');
+      router.replace('/login');
+      return;
+    }
+
+    // Admin rol kontrolü (client-side, güvenlik için Firebase kuralları da gerekli)
+    const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', user.uid)));
+    if (!userDoc.empty && userDoc.docs[0].data().role !== 'admin') {
+      Alert.alert('Erişim Reddedildi', 'Bu işlemi yapmak için yönetici yetkisine sahip olmalısınız.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef);
+      const querySnapshot = await getDocs(q);
+
+      const pushTokens: string[] = [];
+      querySnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (userData.pushToken) {
+          pushTokens.push(userData.pushToken);
+        }
+      });
+
+      const messages = [];
+      for (const token of pushTokens) {
+        messages.push({
+          to: token,
+          sound: 'default',
+          title: title,
+          body: body,
+          data: { someData: 'goes here' },
+        });
+      }
+
+      const chunks = [];
+      const chunkSize = 100; // Expo Push API'sinin izin verdiği maksimum toplu boyut
+      for (let i = 0; i < messages.length; i += chunkSize) {
+        chunks.push(messages.slice(i, i + chunkSize));
+      }
+
+      for (const chunk of chunks) {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(chunk),
+        });
+      }
+
+      Alert.alert('Başarılı', 'Bildirimler başarıyla gönderildi.');
+      setTitle('');
+      setBody('');
+      router.back();
+    } catch (error) {
+      console.error('Error sending notifications: ', error);
+      Alert.alert('Hata', 'Bildirim gönderilirken bir sorun oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Bildirim Gönder</Text>
+        <View style={{ width: 28 }} />
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Başlık</Text>
+          <TextInput
+            style={[styles.input, errors.title ? styles.inputError : null]}
+            placeholder="Bildirim Başlığı"
+            value={title}
+            onChangeText={(text) => {
+              setTitle(text);
+              if (errors.title) setErrors((prev) => ({ ...prev, title: '' }));
+            }}
+            placeholderTextColor={COLORS.gray}
+          />
+          {errors.title ? <Text style={styles.errorText}>{errors.title}</Text> : null}
+        </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>İçerik</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, errors.body ? styles.inputError : null]}
+            placeholder="Bildirim İçeriği"
+            value={body}
+            onChangeText={(text) => {
+              setBody(text);
+              if (errors.body) setErrors((prev) => ({ ...prev, body: '' }));
+            }}
+            multiline
+            numberOfLines={5}
+            textAlignVertical="top"
+            placeholderTextColor={COLORS.gray}
+          />
+          {errors.body ? <Text style={styles.errorText}>{errors.body}</Text> : null}
+        </View>
+
+        <TouchableOpacity style={styles.sendButton} onPress={handleSubmit} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Text style={styles.sendButtonText}>Bildirim Gönder</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIZES.large,
+    paddingTop: SIZES.base,
+    marginBottom: SIZES.base,
+  },
+  backButton: {
+    padding: SIZES.base,
+  },
+  title: {
+    fontSize: SIZES.extraLarge,
+    fontFamily: FONTS.bold,
+    color: COLORS.accent,
+    textAlign: 'center',
+  },
+  scrollContentContainer: { paddingHorizontal: SIZES.large, paddingBottom: 100 },
+  formGroup: { marginBottom: SIZES.large },
+  label: { fontFamily: FONTS.bold, fontSize: SIZES.medium, color: COLORS.primary, marginBottom: SIZES.base / 2 },
+  input: { backgroundColor: COLORS.white, paddingHorizontal: SIZES.medium, paddingVertical: SIZES.medium, borderRadius: SIZES.base, fontFamily: FONTS.regular, fontSize: SIZES.medium, borderWidth: 1, borderColor: COLORS.gray },
+  inputError: { borderColor: COLORS.danger },
+  textArea: { height: 120, },
+  errorText: { color: COLORS.danger, marginTop: SIZES.base, fontSize: SIZES.small, fontFamily: FONTS.regular },
+  sendButton: { backgroundColor: COLORS.accent, paddingVertical: SIZES.medium, paddingHorizontal: SIZES.large, alignItems: 'center', justifyContent: 'center', borderRadius: SIZES.radius, marginTop: SIZES.large },
+  sendButtonText: { fontFamily: FONTS.bold, fontSize: SIZES.medium, color: COLORS.white },
+});
+
+export default SendNotificationScreen;
