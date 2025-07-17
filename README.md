@@ -35,6 +35,14 @@ Bu proje, kullanıcıların günlük ilaç takibini kolaylaştırmak, ilaç saat
 - **Destek Talep Yönetimi:** Tüm kanallardan gelen talepleri merkezi yönetim
 - **Debug Araçları:** Geliştirici ve test araçları
 
+### 💎 Premium Abonelik Sistemi
+- **RevenueCat Entegrasyonu:** Güvenilir abonelik yönetimi
+- **Esnek Abonelik Seçenekleri:** Aylık, 3 aylık, 6 aylık, yıllık planlar
+- **Freemium Model:** Ücretsiz plan (3 ilaç limiti) + Premium (sınırsız)
+- **Otomatik Yenileme:** Apple App Store ve Google Play entegrasyonu
+- **Geri Yükleme:** Cihaz değişikliklerinde abonelik geri yüklemesi
+- **Modern UI:** Profesyonel abonelik modal tasarımı
+
 ## 🚀 Kullanılan Teknolojiler
 
 ### Frontend & Mobile
@@ -48,6 +56,12 @@ Bu proje, kullanıcıların günlük ilaç takibini kolaylaştırmak, ilaç saat
 - **Database:** [Firebase Firestore](https://firebase.google.com/products/firestore)
 - **Authentication:** [Firebase Auth](https://firebase.google.com/products/auth)
 - **Security Rules:** Rol tabanlı Firestore güvenlik kuralları
+- **Real-time Updates:** Firebase onSnapshot listeners
+
+### Subscriptions & Payments
+- **RevenueCat:** [react-native-purchases](https://github.com/RevenueCat/react-native-purchases) 
+- **Cross-Platform:** iOS App Store & Google Play Store desteği
+- **Subscription Management:** Otomatik abonelik yönetimi ve analitik
 - **Real-time Updates:** Firebase onSnapshot listeners
 
 ### Güvenlik & Storage
@@ -107,7 +121,19 @@ class SecurityManager {
 ├── emailVerified: boolean
 ├── emailVerifiedBy: 'admin' | 'firebase'
 ├── deviceInfo: {osName, osVersion, deviceName}
+├── premiumStatus?: {
+│   ├── isPremium: boolean
+│   ├── subscriptionId?: string
+│   ├── expirationDate?: Date
+│   └── provider: 'apple' | 'google'
+│   }
 └── /medicines/{medicineId} (subcollection)
+    ├── name, dosage, type, frequency
+    ├── doseTimes: string[]
+    ├── notificationsEnabled: boolean
+    ├── notificationIds: string[]
+    ├── isActive: boolean
+    └── createdAt
 
 /supportTickets/{ticketId}
 ├── userId, userEmail
@@ -208,6 +234,25 @@ const firebaseConfig = {
 
 **4. Firestore Güvenlik Kurallarını Uygulayın:**
 Firebase Console'da `firestore.rules` dosyasındaki kuralları uygulayın.
+
+**5. RevenueCat Konfigürasyonu (Premium Abonelik için):**
+RevenueCat hesabı oluşturun ve aşağıdaki adımları takip edin:
+
+1. [RevenueCat Dashboard](https://app.revenuecat.com) üzerinde yeni bir proje oluşturun
+2. iOS ve Android uygulamalarınızı ekleyin
+3. Abonelik ürünlerini oluşturun:
+   - `monthly_premium` - Aylık Premium
+   - `three_month_premium` - 3 Aylık Premium  
+   - `six_month_premium` - 6 Aylık Premium
+   - `annual_premium` - Yıllık Premium
+4. `src/services/PurchaseManager.ts` dosyasında API anahtarlarınızı güncelleyin:
+
+```typescript
+const REVENUECAT_APPLE_API_KEY = 'appl_YOUR_API_KEY_HERE';
+const REVENUECAT_GOOGLE_API_KEY = 'goog_YOUR_API_KEY_HERE';
+```
+
+5. Apple App Store Connect ve Google Play Console'da ürünlerinizi tanımlayın
 
 ## 📱 Uygulamayı Çalıştırma
 

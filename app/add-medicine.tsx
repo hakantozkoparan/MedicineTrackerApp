@@ -7,20 +7,22 @@ import { StatusBar } from 'expo-status-bar';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import OptionSelector, { Option } from '@/components/OptionSelector';
+import PremiumModal from '@/components/PremiumModal';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import usePremiumLimit from '@/hooks/usePremiumLimit';
 
 const scheduleReminder = async (medicineName: string, doseTime: string): Promise<string | null> => {
   try {
@@ -31,7 +33,11 @@ const scheduleReminder = async (medicineName: string, doseTime: string): Promise
         body: `${medicineName} ilacınızı alma zamanı!`,
         sound: 'default',
       },
-      trigger: { type: 'daily', hour: Number(hour), minute: Number(minute) },
+      trigger: { 
+        hour: Number(hour), 
+        minute: Number(minute),
+        repeats: true
+      } as any,
     });
     return identifier;
   } catch (error) {
@@ -62,6 +68,9 @@ const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string })
 
 const AddMedicineScreen = () => {
   const router = useRouter();
+  const { canAddMedicine, medicineCount, medicineLimit, loading: limitLoading, refreshPremiumStatus } = usePremiumLimit();
+
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
 
   useEffect(() => {
     const requestPermissions = async () => {
@@ -134,6 +143,12 @@ const AddMedicineScreen = () => {
   };
 
   const handleSave = async () => {
+    // Premium limit kontrolü
+    if (!canAddMedicine) {
+      setPremiumModalVisible(true);
+      return;
+    }
+
     if (!validate()) {
       return;
     }
@@ -196,6 +211,26 @@ const AddMedicineScreen = () => {
         <View style={{ width: 28 }} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+        {/* Premium Limit Uyarısı */}
+        {!limitLoading && medicineLimit && medicineCount >= medicineLimit && (
+          <View style={styles.limitWarning}>
+            <Ionicons name="warning" size={24} color={COLORS.warning} />
+            <View style={styles.limitWarningText}>
+              <Text style={styles.limitWarningTitle}>Ücretsiz Plan Limiti</Text>
+              <Text style={styles.limitWarningDescription}>
+                Ücretsiz planda maksimum {medicineLimit} ilaç ekleyebilirsiniz. 
+                Sınırsız ilaç eklemek için Premium'a geçin.
+              </Text>
+              <TouchableOpacity 
+                style={styles.upgradeButton}
+                onPress={() => setPremiumModalVisible(true)}
+              >
+                <Text style={styles.upgradeButtonText}>Premium'a Geç</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={styles.formGroup}>
           <LabelWithInfo label="İlaç Adı" infoText="Takip etmek istediğiniz ilacın adını girin (örn: Parol, Aspirin)." />
           <TextInput
@@ -308,6 +343,17 @@ const AddMedicineScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Premium Modal */}
+      <PremiumModal
+        visible={premiumModalVisible}
+        onClose={() => setPremiumModalVisible(false)}
+        onPurchaseSuccess={() => {
+          refreshPremiumStatus();
+          setPremiumModalVisible(false);
+        }}
+        currentMedicineCount={medicineCount}
+      />
     </SafeAreaView>
   );
 };
@@ -355,6 +401,45 @@ const styles = StyleSheet.create({
   modalButtonText: { fontFamily: FONTS.semiBold, fontSize: SIZES.medium, color: COLORS.darkGray },
   confirmButton: { backgroundColor: COLORS.accent },
   confirmButtonText: { color: COLORS.white },
+  
+  // Premium limit warning styles
+  limitWarning: {
+    backgroundColor: COLORS.lightWarning,
+    flexDirection: 'row',
+    padding: SIZES.medium,
+    borderRadius: SIZES.base,
+    marginBottom: SIZES.large,
+    alignItems: 'flex-start',
+  },
+  limitWarningText: {
+    flex: 1,
+    marginLeft: SIZES.base,
+  },
+  limitWarningTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
+    color: COLORS.warning,
+    marginBottom: 4,
+  },
+  limitWarningDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: SIZES.small,
+    color: COLORS.darkGray,
+    lineHeight: 18,
+    marginBottom: SIZES.base,
+  },
+  upgradeButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SIZES.base,
+    paddingHorizontal: SIZES.medium,
+    borderRadius: SIZES.base,
+    alignSelf: 'flex-start',
+  },
+  upgradeButtonText: {
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.small,
+    color: COLORS.white,
+  },
 });
 
 export default AddMedicineScreen;

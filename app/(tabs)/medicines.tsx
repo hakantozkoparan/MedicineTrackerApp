@@ -1,11 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { collection, query, onSnapshot, orderBy, doc, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '@/api/firebase';
-import * as Notifications from 'expo-notifications';
+import PremiumModal from '@/components/PremiumModal';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import usePremiumLimit from '@/hooks/usePremiumLimit';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SIZES, FONTS } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { collection, doc, onSnapshot, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Medicine {
   id: string;
@@ -37,6 +40,16 @@ export default function MedicinesScreen() {
   const router = useRouter();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+  
+  const { 
+    isPremium, 
+    medicineCount, 
+    medicineLimit, 
+    canAddMedicine, 
+    remainingMedicines, 
+    refreshPremiumStatus 
+  } = usePremiumLimit();
 
   useFocusEffect(
     useCallback(() => {
@@ -136,6 +149,14 @@ export default function MedicinesScreen() {
     </View>
   );
 
+  const handleAddMedicine = () => {
+    if (!canAddMedicine) {
+      setPremiumModalVisible(true);
+    } else {
+      router.push('/add-medicine');
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.centered]}>
@@ -152,11 +173,72 @@ export default function MedicinesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContentContainer}
         ListHeaderComponent={
-            <View style={styles.header}>
+            <View style={styles.headerContainer}>
+              <View style={styles.header}>
                 <Text style={styles.title}>İlaçlarım</Text>
-                <TouchableOpacity onPress={() => router.push('/add-medicine')}>
+                <TouchableOpacity onPress={handleAddMedicine}>
                     <Ionicons name="add-circle" size={32} color={COLORS.primary} />
                 </TouchableOpacity>
+              </View>
+              
+              {/* Premium Status Info */}
+              {!isPremium && (
+                <View style={styles.premiumCard}>
+                  <LinearGradient
+                    colors={['#667eea', '#764ba2']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.premiumGradient}
+                  >
+                    <View style={styles.premiumHeader}>
+                      <View style={styles.premiumIconContainer}>
+                        <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
+                      </View>
+                      <View style={styles.premiumTextContainer}>
+                        <Text style={styles.premiumTitle}>Premium'a Yükselt</Text>
+                        <Text style={styles.premiumSubtitle}>Sınırsız ilaç ekleyin</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.limitContainer}>
+                      <View style={styles.limitBar}>
+                        <View 
+                          style={[
+                            styles.limitProgress, 
+                            { width: `${(medicineCount / (medicineLimit || 1)) * 100}%` }
+                          ]} 
+                        />
+                      </View>
+                      <Text style={styles.limitText}>
+                        {medicineCount}/{medicineLimit} ilaç kullanıyor
+                      </Text>
+                    </View>
+
+                    {medicineCount >= (medicineLimit || 0) && (
+                      <TouchableOpacity 
+                        style={styles.premiumCTA}
+                        onPress={() => setPremiumModalVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialCommunityIcons name="rocket-launch" size={20} color="#FFFFFF" />
+                        <Text style={styles.premiumCTAText}>Hemen Başla</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    )}
+                    
+                    {medicineCount < (medicineLimit || 0) && (
+                      <TouchableOpacity 
+                        style={styles.premiumCTASecondary}
+                        onPress={() => setPremiumModalVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialCommunityIcons name="star-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.premiumCTASecondaryText}>Premium'u Keşfet</Text>
+                      </TouchableOpacity>
+                    )}
+                  </LinearGradient>
+                </View>
+              )}
             </View>
         }
         ListEmptyComponent={() => (
@@ -164,6 +246,17 @@ export default function MedicinesScreen() {
             <Text style={styles.placeholderText}>Henüz hiç ilaç eklemediniz.</Text>
           </View>
         )}
+      />
+      
+      {/* Premium Modal */}
+      <PremiumModal
+        visible={premiumModalVisible}
+        onClose={() => setPremiumModalVisible(false)}
+        onPurchaseSuccess={() => {
+          refreshPremiumStatus();
+          setPremiumModalVisible(false);
+        }}
+        currentMedicineCount={medicineCount}
       />
     </SafeAreaView>
   );
@@ -248,5 +341,112 @@ const styles = StyleSheet.create({
     fontSize: SIZES.font,
     color: COLORS.white, // Yazı rengi beyaz
     marginLeft: SIZES.base / 2,
+  },
+  
+  // Premium Card Styles
+  headerContainer: {
+    paddingHorizontal: SIZES.large,
+    paddingTop: SIZES.large,
+  },
+  premiumCard: {
+    marginTop: SIZES.medium,
+    marginBottom: SIZES.large,
+    borderRadius: SIZES.medium,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  premiumGradient: {
+    backgroundColor: '#667eea', // Modern gradient rengi
+    padding: SIZES.large,
+  },
+  premiumHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.medium,
+  },
+  premiumIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SIZES.medium,
+  },
+  premiumTextContainer: {
+    flex: 1,
+  },
+  premiumTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.large,
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  premiumSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: SIZES.font,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  limitContainer: {
+    marginBottom: SIZES.large,
+  },
+  limitBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
+    marginBottom: SIZES.base,
+    overflow: 'hidden',
+  },
+  limitProgress: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 3,
+  },
+  limitText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: SIZES.small,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  premiumCTA: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: SIZES.medium,
+    paddingVertical: SIZES.medium,
+    paddingHorizontal: SIZES.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  premiumCTAText: {
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.font,
+    color: '#FFFFFF',
+    marginHorizontal: SIZES.base,
+  },
+  premiumCTASecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: SIZES.medium,
+    paddingVertical: SIZES.small,
+    paddingHorizontal: SIZES.medium,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  premiumCTASecondaryText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: SIZES.small,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: SIZES.base,
   },
 });

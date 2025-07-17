@@ -6,8 +6,10 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import PremiumModal from '@/components/PremiumModal';
 import ProfileMenuItem from '@/components/ProfileMenuItem';
 import UserInfoCard from '@/components/UserInfoCard';
+import usePremiumLimit from '@/hooks/usePremiumLimit';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -16,6 +18,9 @@ export default function ProfileScreen() {
   const [userSurname, setUserSurname] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+
+  const { isPremium, medicineCount, premiumStatus, refreshPremiumStatus } = usePremiumLimit();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -105,6 +110,19 @@ export default function ProfileScreen() {
         <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
         
         <View style={styles.menuContainer}>
+          {/* Premium Status Menu Item */}
+          <ProfileMenuItem
+            icon="diamond-outline"
+            title={isPremium ? "Premium Aktif" : "Premium'a Geç"}
+            subtitle={
+              isPremium 
+                ? `${premiumStatus?.expirationDate ? new Date(premiumStatus.expirationDate).toLocaleDateString('tr-TR') : 'Aktif'} tarihine kadar`
+                : "Sınırsız ilaç ekleyin ve daha fazlası"
+            }
+            onPress={() => setPremiumModalVisible(true)}
+            textColor={isPremium ? COLORS.success : COLORS.primary}
+          />
+          
           {isAdmin && (
             <ProfileMenuItem
               icon="people-outline"
@@ -156,6 +174,17 @@ export default function ProfileScreen() {
           />
         </View>
       </View>
+      
+      {/* Premium Modal */}
+      <PremiumModal
+        visible={premiumModalVisible}
+        onClose={() => setPremiumModalVisible(false)}
+        onPurchaseSuccess={() => {
+          refreshPremiumStatus();
+          setPremiumModalVisible(false);
+        }}
+        currentMedicineCount={medicineCount} // Gerçek ilaç sayısını geç
+      />
     </SafeAreaView>
   );
 }

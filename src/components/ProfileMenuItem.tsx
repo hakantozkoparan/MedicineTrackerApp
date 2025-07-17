@@ -1,22 +1,28 @@
-import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, FONTS } from '../constants/theme';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COLORS, FONTS, SIZES } from '../constants/theme';
 
 interface ProfileMenuItemProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
+  subtitle?: string;
   onPress: () => void;
   isDestructive?: boolean;
   textColor?: string;
 }
 
-const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({ icon, title, onPress, isDestructive = false, textColor }) => {
+const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({ icon, title, subtitle, onPress, isDestructive = false, textColor }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.leftContainer}>
         <Ionicons name={icon} size={24} color={isDestructive ? COLORS.danger : (textColor || COLORS.primary)} />
-        <Text style={[styles.title, isDestructive && styles.destructiveText, textColor && { color: textColor }]}>{title}</Text>
+        <View style={styles.textContainer}>
+          <Text style={[styles.title, isDestructive && styles.destructiveText, textColor && { color: textColor }]}>{title}</Text>
+          {subtitle && (
+            <Text style={styles.subtitle}>{subtitle}</Text>
+          )}
+        </View>
       </View>
       {!isDestructive && (
         <Ionicons name="chevron-forward-outline" size={22} color={COLORS.gray} />
@@ -45,11 +51,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  textContainer: {
+    marginLeft: SIZES.medium,
+    flex: 1,
+  },
   title: {
     fontFamily: FONTS.semiBold,
     fontSize: SIZES.medium,
     color: COLORS.darkGray,
-    marginLeft: SIZES.medium,
+  },
+  subtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    marginTop: 2,
   },
   destructiveText: {
     color: COLORS.danger,

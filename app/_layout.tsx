@@ -1,4 +1,5 @@
 import { auth, db } from '@/api/firebase';
+import PurchaseManager from '@/services/PurchaseManager';
 import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -36,6 +37,11 @@ export default function RootLayout() {
       
       if (user) {
         try {
+          // RevenueCat'i initialize et ve kullanıcı login et
+          const purchaseManager = PurchaseManager.getInstance();
+          await purchaseManager.initialize();
+          await purchaseManager.loginUser(user.uid);
+          
           // En güncel durumu al
           await user.reload();
           
@@ -87,6 +93,13 @@ export default function RootLayout() {
           setEmailVerified(false);
         }
       } else {
+        // RevenueCat logout
+        try {
+          const purchaseManager = PurchaseManager.getInstance();
+          await purchaseManager.logoutUser();
+        } catch (error) {
+          console.log('RevenueCat logout hatası:', error);
+        }
         setEmailVerified(false);
       }
       
