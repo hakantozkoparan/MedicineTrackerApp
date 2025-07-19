@@ -9,13 +9,22 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hkntzkprn.MedicineTrackerApp",
+      "buildNumber": "10",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/medicinetrackerlogo.png",
         "backgroundColor": "#ffffff"
       },
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "web": {

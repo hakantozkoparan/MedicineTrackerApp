@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -28,27 +28,60 @@ const RegisterScreen = () => {
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
 
+  // Firebase konfigürasyon kontrolü
+  React.useEffect(() => {
+    console.log('🔧 Firebase konfigürasyon kontrolü:', {
+      hasAuth: !!auth,
+      hasDb: !!db,
+      platform: Platform.OS,
+      isDev: __DEV__
+    });
+  }, []);
+
   const getPushNotificationToken = async () => {
-    let token;
-    if (Device.isDevice) {
+    try {
+      console.log('🔔 Push notification token alma işlemi başlatılıyor...');
+      
+      if (!Device.isDevice) {
+        console.log('📱 Simülatör ortamı, push token atlanıyor');
+        return null;
+      }
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
+      
+      console.log('🔍 Mevcut notification permission:', existingStatus);
+      
       if (existingStatus !== 'granted') {
+        console.log('🔄 Permission isteniyor...');
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
+        console.log('✅ Yeni permission durumu:', status);
       }
+      
       if (finalStatus !== 'granted') {
-        Alert.alert('Bildirim izni verilmedi!');
-        return;
+        console.log('❌ Notification permission reddedildi');
+        return null; // Hata yerine null döndür
       }
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig.extra.eas.projectId,
-      })).data;
-    } else {
-      Alert.alert('Fiziksel bir cihazda çalıştırılmalıdır.');
+      
+      console.log('🎯 Expo push token alınıyor...');
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      });
+      
+      console.log('✅ Push token başarıyla alındı:', tokenData.data);
+      return tokenData.data;
+      
+    } catch (error) {
+      console.error('❌ Push notification token alma hatası:', error);
+      console.error('Hata detayları:', {
+        code: error.code,
+        message: error.message,
+        name: error.name
+      });
+      // APS hatası olsa bile kayıt işlemine devam et
+      return null;
     }
-
-    return token;
   };
 
   const handleRegister = async () => {
@@ -99,13 +132,18 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
+      console.log('🔄 Register işlemi başlatılıyor...', { email, hasPassword: !!password });
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      
+      console.log('✅ Firebase Auth kullanıcı oluşturuldu:', user.uid);
 
       const pushToken = await getPushNotificationToken();
+      console.log('📱 Push token alındı:', pushToken ? 'var' : 'yok');
 
       // Save user data to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      const userData = {
         name: name,
         surname: surname,
         email: email,
@@ -119,20 +157,40 @@ const RegisterScreen = () => {
         },
         role: 'member',
         emailVerified: false,
-      });
+      };
+      
+      console.log('🔄 Firestore\'a kullanıcı verisi kaydediliyor...', user.uid);
+      try {
+        console.log('📝 Firestore kayıt verisi:', JSON.stringify(userData));
+        await setDoc(doc(db, 'users', user.uid), userData);
+        console.log('✅ Firestore\'a kullanıcı verisi kaydedildi');
+      } catch (firestoreError) {
+        console.error('❌ Firestore kayıt hatası:', {
+          code: firestoreError.code,
+          message: firestoreError.message,
+          userId: user.uid,
+          errorDetails: firestoreError
+        });
+        throw firestoreError; // Ana hata yakalama bloğuna aktarıldı
+      }
 
       // Email doğrulama gönder
+      console.log('📧 Email doğrulama gönderiliyor...');
       await sendEmailVerification(user);
+      console.log('✅ Email doğrulama gönderildi');
 
       // Kullanıcıyı çıkış yap ki email doğrulaması sonrası temiz giriş yapabilsin
+      console.log('🔄 Kullanıcı çıkış yapılıyor...');
       await signOut(auth);
+      console.log('✅ Kullanıcı çıkış yapıldı');
 
       // Başarılı kayıt kaydı
       try {
         const securityManager = SecurityManager.getInstance();
         await securityManager.recordAttempt('register', true, email);
+        console.log('✅ Security log kaydedildi');
       } catch (error) {
-        console.error('Başarılı kayıt kaydı hatası:', error);
+        console.error('❌ Başarılı kayıt kaydı hatası:', error);
       }
 
       Alert.alert(
@@ -146,6 +204,13 @@ const RegisterScreen = () => {
         ]
       );
     } catch (error) {
+      console.error('❌ Register işlemi hatası:', {
+        code: error.code,
+        message: error.message,
+        email: email,
+        errorDetails: error
+      });
+      
       // Reset captcha on failed registration attempt
       setCaptchaResetTrigger(prev => prev + 1);
       setIsCaptchaVerified(false);
@@ -155,12 +220,14 @@ const RegisterScreen = () => {
         const securityManager = SecurityManager.getInstance();
         await securityManager.recordAttempt('register', false, email);
       } catch (securityError) {
-        console.error('Başarısız kayıt kaydı hatası:', securityError);
+        console.error('❌ Başarısız kayıt kaydı hatası:', securityError);
       }
       
+      // Daha detaylı hata mesajları
       switch (error.code) {
         case 'auth/email-already-in-use':
           setEmailError('Bu e-posta adresi zaten kullanılıyor.');
+          Alert.alert('E-posta Zaten Kayıtlı', 'Bu e-posta adresi zaten sistemde kayıtlı. Giriş yapmayı deneyin.');
           break;
         case 'auth/invalid-email':
           setEmailError('Geçersiz e-posta adresi formatı.');
@@ -168,9 +235,24 @@ const RegisterScreen = () => {
         case 'auth/weak-password':
           setPasswordError('Şifre en az 6 karakter olmalıdır.');
           break;
+        case 'auth/network-request-failed':
+          Alert.alert('Bağlantı Hatası', 'İnternet bağlantınızı kontrol edin ve tekrar deneyin.');
+          break;
+        case 'auth/too-many-requests':
+          Alert.alert('Çok Fazla Deneme', 'Çok fazla başarısız deneme yapıldı. Lütfen daha sonra tekrar deneyin.');
+          break;
+        case 'firestore/permission-denied':
+          Alert.alert('İzin Hatası', 'Veritabanına erişim izni reddedildi. Lütfen uygulamayı yeniden başlatın.');
+          break;
+        case 'firestore/unavailable':
+          Alert.alert('Hizmet Kullanılamıyor', 'Veritabanı hizmeti şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+          break;
         default:
-          Alert.alert('Hata', 'Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.');
-          console.error(error);
+          Alert.alert(
+            'Beklenmedik Hata', 
+            `Kayıt işlemi sırasında bir hata oluştu.\n\nHata kodu: ${error.code || 'bilinmiyor'}\nDetay: ${error.message || 'Detay yok'}\n\nLütfen tekrar deneyin.`
+          );
+          console.error('Unhandled registration error:', error);
           break;
       }
     } finally {

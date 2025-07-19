@@ -3,7 +3,10 @@ import SimpleCaptcha from '@/components/SimpleCaptcha';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import SecurityManager from '@/utils/SecurityManager';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -64,6 +67,40 @@ const LoginScreen = () => {
       </SafeAreaView>
     );
   }
+
+  // Push notification token güncelleme fonksiyonu
+  const updatePushNotificationToken = async (userId) => {
+    try {
+      console.log('🔔 Push notification token güncelleniyor...');
+      
+      if (!Device.isDevice) {
+        console.log('📱 Simülatör ortamı, push token güncelleme atlanıyor');
+        return;
+      }
+
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('🚫 Push notification izni yok, token güncelleme atlanıyor');
+        return;
+      }
+
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      });
+
+      if (tokenData.data) {
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, {
+          pushToken: tokenData.data,
+          pushTokenUpdatedAt: new Date()
+        });
+        console.log('✅ Push token başarıyla güncellendi:', tokenData.data);
+      }
+    } catch (error) {
+      console.error('❌ Push token güncelleme hatası:', error);
+      // Hata olsa bile login işlemini durdurma
+    }
+  };
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
@@ -320,6 +357,11 @@ const LoginScreen = () => {
               })
             });
           }
+          
+          // Push notification token'ı güncelle (background'da)
+          updatePushNotificationToken(refreshedUser.uid).catch(error => {
+            console.log('Push token güncelleme arka planda başarısız:', error);
+          });
           
           console.log(isManuallyVerified ? 
             '✅ Kullanıcı girişi başarılı (Manuel doğrulanmış email)' : 

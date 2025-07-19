@@ -1,12 +1,11 @@
-import { auth } from '@/api/firebase';
 import { Alert, Platform } from 'react-native';
 import Purchases, {
-    CustomerInfo,
-    PURCHASES_ERROR_CODE
+  CustomerInfo,
+  PURCHASES_ERROR_CODE
 } from 'react-native-purchases';
 
 // RevenueCat API anahtarları - gerçek anahtarları buraya ekleyeceğiz
-const REVENUECAT_APPLE_API_KEY = 'appl_YOUR_API_KEY_HERE';
+const REVENUECAT_APPLE_API_KEY = 'appl_OlDjFiFHnEiifjFTQLmjpHMsGPG';
 const REVENUECAT_GOOGLE_API_KEY = 'goog_YOUR_API_KEY_HERE';
 
 export interface SubscriptionPackage {
@@ -54,12 +53,25 @@ class PurchaseManager {
       // Platform'a göre API anahtarı seç
       const apiKey = Platform.OS === 'ios' ? REVENUECAT_APPLE_API_KEY : REVENUECAT_GOOGLE_API_KEY;
       
-      await Purchases.configure({ apiKey });
+      console.log('🔧 RevenueCat configuring with:', {
+        platform: Platform.OS,
+        apiKey: apiKey.substring(0, 10) + '...',
+        environment: 'production'
+      });
+      
+      await Purchases.configure({ 
+        apiKey
+      });
 
       // Kullanıcı giriş yapmışsa kullanıcı ID'sini ayarla
-      const user = auth.currentUser;
-      if (user) {
-        await Purchases.logIn(user.uid);
+      try {
+        const { auth } = require('@/api/firebase');
+        const user = auth?.currentUser;
+        if (user) {
+          await Purchases.logIn(user.uid);
+        }
+      } catch (error) {
+        console.warn('Auth user check failed:', error);
       }
 
       this.isInitialized = true;
@@ -98,33 +110,103 @@ class PurchaseManager {
   // Mevcut abonelik paketlerini getir
   async getAvailablePackages(): Promise<SubscriptionPackage[]> {
     try {
+      console.log('🔄 PurchaseManager: getAvailablePackages started');
+      
       if (!this.isInitialized) {
+        console.log('🔄 PurchaseManager: Not initialized, calling initialize()');
         await this.initialize();
       }
 
+      console.log('🔄 PurchaseManager: Getting offerings from RevenueCat');
       const offerings = await Purchases.getOfferings();
-      const currentOffering = offerings.current;
+      
+      console.log('📦 PurchaseManager: Offerings received:', {
+        all: Object.keys(offerings.all).length,
+        current: offerings.current ? 'exists' : 'null',
+        currentId: offerings.current?.identifier || 'none',
+        allOfferingIds: Object.keys(offerings.all),
+        allOfferingsDetails: Object.keys(offerings.all).map(key => ({
+          id: key,
+          packagesCount: offerings.all[key].availablePackages.length,
+          packages: offerings.all[key].availablePackages.map(p => p.identifier)
+        }))
+      });
+      
+      // ÖZEL DEBUG: Tüm offering'leri detaylı incele
+      console.log('🔍 DETAILED OFFERINGS ANALYSIS:');
+      Object.keys(offerings.all).forEach(offeringKey => {
+        const offering = offerings.all[offeringKey];
+        console.log(`  📋 Offering: ${offeringKey}`);
+        console.log(`     - Description: ${offering.serverDescription}`);
+        console.log(`     - Package Count: ${offering.availablePackages.length}`);
+        offering.availablePackages.forEach(pkg => {
+          console.log(`     - Package: ${pkg.identifier} | Product: ${pkg.product.identifier} | Price: ${pkg.product.priceString}`);
+        });
+      });
+      
+      // Önce current offering'i dene, sonra default'u dene, sonra herhangi birini al
+      let currentOffering = offerings.current;
+      
+      console.log('🎯 Current offering status:', {
+        exists: !!currentOffering,
+        identifier: currentOffering?.identifier,
+        isPreview: currentOffering?.identifier === 'preview-offering'
+      });
+      
+      // Current offering yoksa default'u dene
+      if (!currentOffering) {
+        console.log('🔄 No current offering, trying default...');
+        currentOffering = offerings.all['default'];
+        if (currentOffering) {
+          console.log('✅ Found default offering');
+        }
+      }
+      
+      // Default da yoksa ilk offering'i al
+      if (!currentOffering) {
+        console.log('🔄 No default offering, trying first available...');
+        const firstOfferingKey = Object.keys(offerings.all)[0];
+        if (firstOfferingKey) {
+          currentOffering = offerings.all[firstOfferingKey];
+          console.log(`✅ Using first offering: ${firstOfferingKey}`);
+        }
+      }
       
       if (!currentOffering) {
-        console.warn('⚠️ Aktif abonelik teklifi bulunamadı');
+        console.warn('⚠️ PurchaseManager: No current or default offering found');
+        console.log('Available offerings:', Object.keys(offerings.all));
+        return [];
+      }
+
+      console.log('📦 PurchaseManager: Current offering details:', {
+        identifier: currentOffering.identifier,
+        description: currentOffering.serverDescription,
+        packagesCount: currentOffering.availablePackages.length,
+        packages: currentOffering.availablePackages.map(p => ({
+          id: p.identifier,
+          type: p.packageType,
+          productId: p.product.identifier,
+          title: p.product.title,
+          price: p.product.priceString
+        }))
+      });
+
+      // Eğer hiç paket yoksa, tüm mevcut paketleri listele
+      if (currentOffering.availablePackages.length === 0) {
+        console.warn('⚠️ PurchaseManager: No packages in current offering');
         return [];
       }
 
       const packages: SubscriptionPackage[] = [];
       
-      // Paketleri sırala: Aylık, 3 Aylık, 6 Aylık, Yıllık
-      const packageOrder = ['monthly', 'three_month', 'six_month', 'annual'];
-      
-      packageOrder.forEach(packageType => {
-        const pkg = currentOffering.availablePackages.find(p => 
-          p.packageType === packageType || 
-          p.identifier.toLowerCase().includes(packageType.replace('_', ''))
-        );
+      // Eğer preview offering ise, preview package'ı ekle
+      if (currentOffering.identifier === 'preview-offering') {
+        console.log('🧪 PurchaseManager: Using preview offering for testing');
         
-        if (pkg) {
+        currentOffering.availablePackages.forEach(pkg => {
           packages.push({
             identifier: pkg.identifier,
-            packageType: pkg.packageType,
+            packageType: 'monthly', // Preview için monthly olarak ayarla
             product: {
               identifier: pkg.product.identifier,
               title: pkg.product.title,
@@ -136,13 +218,62 @@ class PurchaseManager {
             localizedPriceString: pkg.product.priceString,
             localizedIntroductoryPriceString: undefined,
           });
+        });
+        
+        console.log('✅ PurchaseManager: Added preview packages:', packages.length);
+        return packages;
+      }
+      
+      // RevenueCat paket identifier'larını map et - RevenueCat Dashboard'unuzla tam uyumlu
+      const packageMapping = [
+        // RevenueCat Dashboard'unuzda tanımlı olan identifierlar
+        { identifier: '$rc_monthly', type: 'monthly' },
+        { identifier: '$rc_three_month', type: 'three_month' },
+        { identifier: '$rc_six_month', type: 'six_month' },
+        { identifier: '$rc_annual', type: 'annual' }
+      ];
+      
+      packageMapping.forEach(mapping => {
+        const pkg = currentOffering.availablePackages.find(p => 
+          p.identifier === mapping.identifier
+        );
+        
+        if (pkg) {
+          console.log(`✅ PurchaseManager: Found package ${mapping.identifier} (${mapping.type}):`, {
+            identifier: pkg.identifier,
+            productId: pkg.product.identifier,
+            title: pkg.product.title,
+            price: pkg.product.priceString
+          });
+          
+          // Aynı tip için birden fazla package eklememek için kontrol et
+          const existingPackage = packages.find(existingPkg => existingPkg.packageType === mapping.type);
+          if (!existingPackage) {
+            packages.push({
+              identifier: pkg.identifier,
+              packageType: mapping.type as any,
+              product: {
+                identifier: pkg.product.identifier,
+                title: pkg.product.title,
+                description: pkg.product.description,
+                price: pkg.product.price,
+                priceString: pkg.product.priceString,
+                currencyCode: pkg.product.currencyCode,
+              },
+              localizedPriceString: pkg.product.priceString,
+              localizedIntroductoryPriceString: undefined,
+            });
+          }
+        } else {
+          console.warn(`⚠️ PurchaseManager: Package ${mapping.identifier} (${mapping.type}) not found in offering`);
         }
       });
 
+      console.log(`✅ PurchaseManager: Returning ${packages.length} packages`);
       return packages;
 
     } catch (error) {
-      console.error('❌ Abonelik paketleri alma hatası:', error);
+      console.error('❌ PurchaseManager: Error getting packages:', error);
       return [];
     }
   }
@@ -353,6 +484,44 @@ class PurchaseManager {
         return '%40 tasarruf - En popüler';
       default:
         return '';
+    }
+  }
+
+  // RevenueCat test fonksiyonu (debug için)
+  async testRevenueCat(): Promise<void> {
+    try {
+      console.log('🧪 RevenueCat Test Starting...');
+      
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
+      const offerings = await Purchases.getOfferings();
+      console.log('📦 All offerings:', Object.keys(offerings.all));
+      console.log('📦 Current offering:', offerings.current?.identifier || 'null');
+      
+      if (offerings.current) {
+        console.log('📦 Current offering packages:', 
+          offerings.current.availablePackages.map(p => ({
+            id: p.identifier,
+            type: p.packageType,
+            productId: p.product.identifier,
+            title: p.product.title,
+            price: p.product.priceString
+          }))
+        );
+      }
+      
+      const customerInfo = await Purchases.getCustomerInfo();
+      console.log('👤 Customer info:', {
+        userId: customerInfo.originalAppUserId,
+        activeEntitlements: Object.keys(customerInfo.entitlements.active)
+      });
+      
+      console.log('✅ RevenueCat Test Completed');
+      
+    } catch (error) {
+      console.error('❌ RevenueCat test error:', error);
     }
   }
 }

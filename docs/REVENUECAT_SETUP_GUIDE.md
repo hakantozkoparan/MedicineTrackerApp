@@ -22,7 +22,7 @@
 2. "Add new app" butonuna tıklayın
 3. Platform olarak "iOS" seçin
 4. App name: "Medicine Tracker iOS"
-5. Bundle ID: `com.hkntzkprn.medicinetracker` (expo app.json'daki ile aynı olmalı)
+5. Bundle ID: `com.hkntzkprn.MedicineTrackerApp` (expo app.json'daki ile aynı olmalı)
 
 #### Adım 2: App Store Connect'te Ürün Oluşturun
 1. [App Store Connect](https://appstoreconnect.apple.com/)'e gidin
@@ -31,22 +31,22 @@
 4. Şu ürünleri oluşturun:
 
 **Auto-Renewable Subscriptions:**
-- Product ID: `com.hkntzkprn.medicinetracker.monthly`
+- Product ID: `com.hkntzkprn.MedicineTrackerApp.monthly`
   - Reference Name: "Monthly Premium"
   - Duration: 1 Month
   - Price: ₺29.99
 
-- Product ID: `com.hkntzkprn.medicinetracker.threemonth`
+- Product ID: `com.hkntzkprn.MedicineTrackerApp.threemonth`
   - Reference Name: "3 Month Premium"
   - Duration: 3 Months
   - Price: ₺74.99
 
-- Product ID: `com.hkntzkprn.medicinetracker.sixmonth`
+- Product ID: `com.hkntzkprn.MedicineTrackerApp.sixmonth`
   - Reference Name: "6 Month Premium"
   - Duration: 6 Months
   - Price: ₺134.99
 
-- Product ID: `com.hkntzkprn.medicinetracker.annual`
+- Product ID: `com.hkntzkprn.MedicineTrackerApp.annual`
   - Reference Name: "Annual Premium"
   - Duration: 1 Year
   - Price: ₺199.99
@@ -101,22 +101,22 @@
 
 **Monthly Package:**
 - Identifier: `monthly`
-- Product: `com.hkntzkprn.medicinetracker.monthly`
+- Product: `com.hkntzkprn.MedicineTrackerApp.monthly`
 - Position: 1
 
 **3 Month Package:**
 - Identifier: `three_month`
-- Product: `com.hkntzkprn.medicinetracker.threemonth`
+- Product: `com.hkntzkprn.MedicineTrackerApp.threemonth`
 - Position: 2
 
 **6 Month Package:**
 - Identifier: `six_month`
-- Product: `com.hkntzkprn.medicinetracker.sixmonth`
+- Product: `com.hkntzkprn.MedicineTrackerApp.sixmonth`
 - Position: 3
 
 **Annual Package:**
 - Identifier: `annual`
-- Product: `com.hkntzkprn.medicinetracker.annual`
+- Product: `com.hkntzkprn.MedicineTrackerApp.annual`
 - Position: 4
 
 ## 5. API Keys'leri Alın
@@ -135,7 +135,7 @@
 \`\`\`typescript
 // src/services/PurchaseManager.ts dosyasında güncelleme yapın:
 
-const REVENUECAT_APPLE_API_KEY = 'appl_YOUR_ACTUAL_IOS_API_KEY_HERE';
+const REVENUECAT_APPLE_API_KEY = 'appl_OlDjFiFHnEiifjFTQLmjpHMsGPG';
 const REVENUECAT_GOOGLE_API_KEY = 'goog_YOUR_ACTUAL_ANDROID_API_KEY_HERE';
 \`\`\`
 
