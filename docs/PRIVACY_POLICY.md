@@ -6,8 +6,8 @@ Bu Gizlilik Politikası, Medicine Tracker uygulaması ("Uygulama", "Hizmet") kul
 
 ## 1. Veri Sorumlusu
 
-**Uygulama Geliştirici:** Hakan Toz Koparan  
-**İletişim:** hkntzkprn@email.com  
+**Uygulama Geliştirici:** Hakan Tozkoparan  
+**İletişim:** hakantozkoparan0@gmail.com  
 **Uygulama:** Medicine Tracker  
 
 ## 2. Toplanan Bilgiler
