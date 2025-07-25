@@ -1,9 +1,10 @@
-import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { collection, getDocs, getFirestore, query } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
@@ -12,13 +13,14 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 
 const SendNotificationScreen = () => {
   const router = useRouter();
+  const auth = getAuth();
+  const firestore = getFirestore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,16 +46,9 @@ const SendNotificationScreen = () => {
       return;
     }
 
-    // Admin rol kontrolü (client-side, güvenlik için Firebase kuralları da gerekli)
-    const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', user.uid)));
-    if (!userDoc.empty && userDoc.docs[0].data().role !== 'admin') {
-      Alert.alert('Erişim Reddedildi', 'Bu işlemi yapmak için yönetici yetkisine sahip olmalısınız.');
-      return;
-    }
-
     setLoading(true);
     try {
-      const usersRef = collection(db, 'users');
+      const usersRef = collection(firestore, 'users');
       const q = query(usersRef);
       const querySnapshot = await getDocs(q);
 
@@ -64,6 +59,11 @@ const SendNotificationScreen = () => {
           pushTokens.push(userData.pushToken);
         }
       });
+
+      if (pushTokens.length === 0) {
+        Alert.alert('Uyarı', 'Bildirim gönderilecek kullanıcı bulunamadı.');
+        return;
+      }
 
       const messages = [];
       for (const token of pushTokens) {
@@ -83,7 +83,7 @@ const SendNotificationScreen = () => {
       }
 
       for (const chunk of chunks) {
-        await fetch('https://exp.host/--/api/v2/push/send', {
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: {
             Accept: 'application/json',
@@ -92,15 +92,29 @@ const SendNotificationScreen = () => {
           },
           body: JSON.stringify(chunk),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Push notification error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+        }
+
+        // Success response'u da logla
+        const responseData = await response.json();
+        console.log('Push notification success:', responseData);
       }
 
-      Alert.alert('Başarılı', 'Bildirimler başarıyla gönderildi.');
+      Alert.alert('Başarılı', `${pushTokens.length} kullanıcıya bildirim başarıyla gönderildi.`);
       setTitle('');
       setBody('');
       router.back();
     } catch (error) {
       console.error('Error sending notifications: ', error);
-      Alert.alert('Hata', 'Bildirim gönderilirken bir sorun oluştu.');
+      Alert.alert('Hata', 'Bildirim gönderilirken bir sorun oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'));
     } finally {
       setLoading(false);
     }

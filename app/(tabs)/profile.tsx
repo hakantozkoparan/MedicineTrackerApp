@@ -1,8 +1,7 @@
-import { db } from '@/api/firebase';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +13,7 @@ import usePremiumLimit from '@/hooks/usePremiumLimit';
 export default function ProfileScreen() {
   const router = useRouter();
   const auth = getAuth();
+  const firestore = getFirestore();
   const [userName, setUserName] = useState('');
   const [userSurname, setUserSurname] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(firestore, 'users', user.uid);
         
         const docUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {

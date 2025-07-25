@@ -596,10 +596,10 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
   const renderPackageCard = (pkg: SubscriptionPackage) => {
     const isSelected = selectedPackage?.identifier === pkg.identifier;
     const isPopular = pkg.packageType === 'annual' || pkg.identifier.toLowerCase().includes('annual');
-    
+
     const handlePackageSelect = () => {
       const remoteLogger = RemoteLogger.getInstance();
-      
+
       remoteLogger.info('📦 Package selected by user', {
         packageId: pkg.identifier,
         packageType: pkg.packageType,
@@ -610,17 +610,21 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
         previousSelection: selectedPackage?.identifier || 'none',
         timestamp: new Date().toISOString()
       });
-      
+
       console.log('📦 User selected package:', {
         id: pkg.identifier,
         type: pkg.packageType,
         price: pkg.product.priceString,
         wasAlreadySelected: isSelected
       });
-      
+
       setSelectedPackage(pkg);
     };
-    
+
+    // Fiyatı ülkeye göre en doğru şekilde göster
+    let displayPrice = pkg.localizedPriceString || pkg.product.priceString || 'Fiyat bulunamadı';
+    let currency = pkg.product.currencyCode ? ` ${pkg.product.currencyCode}` : '';
+
     return (
       <TouchableOpacity
         key={pkg.identifier}
@@ -635,20 +639,20 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
             <Text style={styles.popularBadgeText}>EN POPÜLER</Text>
           </View>
         )}
-        
+
         <View style={styles.packageHeader}>
           <Text style={styles.packageTitle}>
             {PurchaseManager.getSubscriptionTitle(pkg.packageType)}
           </Text>
           <Text style={styles.packagePrice}>
-            {PurchaseManager.formatSubscriptionPrice(pkg)}
+            {displayPrice}{currency}
           </Text>
         </View>
-        
+
         <Text style={styles.packageBenefit}>
           {PurchaseManager.getSubscriptionBenefit(pkg.packageType)}
         </Text>
-        
+
         <View style={styles.radioButton}>
           <View style={[
             styles.radioOuter,
