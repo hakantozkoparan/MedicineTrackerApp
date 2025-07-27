@@ -39,6 +39,11 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState('');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
 
+  // Uygulama açıldığında badge'i sıfırla
+  React.useEffect(() => {
+    Notifications.setBadgeCountAsync(0);
+  }, []);
+
   const toggleMedicineStatus = async (medicine: Medicine) => {
     if (!auth || !db) return;
     const user = auth.currentUser;
