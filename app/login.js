@@ -310,7 +310,7 @@ const LoginScreen = () => {
           
           Alert.alert(
             'Email Doğrulaması Gerekli',
-            'Hesabınızı kullanabilmek için e-posta adresinizi doğrulamanız gerekiyor. E-postanızı kontrol edin ve doğrulama linkine tıklayın.',
+            'Hesabınızı kullanabilmek için e-posta adresinizi doğrulamanız gerekiyor. Spam kutunuzu ve E-postanızı kontrol edin ve doğrulama linkine tıklayın.',
             [
               {
                 text: 'Yeni Doğrulama E-postası Gönder',

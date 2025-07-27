@@ -1,11 +1,11 @@
 import { COLORS } from '@/constants/theme.js';
+import { usePremiumLimit } from '@/hooks/usePremiumLimit';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { usePremiumLimit } from '@/hooks/usePremiumLimit';
 
 // AdMob'u güvenli şekilde import et
 let AdMobBanner: any = null;
