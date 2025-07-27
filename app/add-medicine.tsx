@@ -20,25 +20,32 @@ import {
   View,
 } from 'react-native';
 
+import DropdownSelector, { DropdownOption } from '@/components/DropdownSelector';
 import OptionSelector, { Option } from '@/components/OptionSelector';
 import PremiumModal from '@/components/PremiumModal';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import usePremiumLimit from '@/hooks/usePremiumLimit';
 
-const scheduleReminder = async (medicineName: string, doseTime: string): Promise<string | null> => {
+const scheduleReminder = async (medicineName: string, doseTime: string, userFor: string): Promise<string | null> => {
   try {
     const [hour, minute] = doseTime.split(':').map(Number);
+    
+    // Bildirim metni kişiye göre ayarla
+    const notificationBody = userFor === 'Ben' 
+      ? `${medicineName} ilacınızı alma zamanı geldi!`
+      : `${userFor} için ${medicineName} ilacını alma zamanı geldi!`;
     
     // Her gün tekrarlanan bildirim için doğru trigger
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
         title: '💊 İlaç Hatırlatma',
-        body: `${medicineName} ilacınızı alma zamanı geldi!`,
+        body: notificationBody,
         sound: 'default',
         badge: 1,
         data: {
           medicineName,
           doseTime,
+          userFor,
           type: 'medicine_reminder'
         }
       },
@@ -62,6 +69,20 @@ const medicineTypes: Option[] = [
   { label: 'Şurup', value: 'Şurup', icon: 'bottle-tonic-plus-outline' },
   { label: 'İğne', value: 'İğne', icon: 'needle' },
   { label: 'Diğer', value: 'Diğer', icon: 'medical-bag' },
+];
+
+const userOptions: DropdownOption[] = [
+  { label: 'Ben', value: 'Ben' },
+  { label: 'Anne', value: 'Anne' },
+  { label: 'Baba', value: 'Baba' },
+  { label: 'Anneanne', value: 'Anneanne' },
+  { label: 'Babaanne', value: 'Babaanne' },
+  { label: 'Dede', value: 'Dede' },
+  { label: 'Kardeş', value: 'Kardeş' },
+  { label: 'Eş', value: 'Eş' },
+  { label: 'Çocuk', value: 'Çocuk' },
+  { label: 'Akraba', value: 'Akraba' },
+  { label: 'Diğer', value: 'Diğer' },
 ];
 
 const frequencyOptions: Option[] = Array.from({ length: 6 }, (_, i) => ({ label: (i + 1).toString(), value: i + 1 }));
@@ -134,6 +155,7 @@ const AddMedicineScreen = () => {
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
+  const [userFor, setUserFor] = useState<string | number | null>('Ben');
   const [type, setType] = useState<string | number | null>('Hap');
   const [frequency, setFrequency] = useState<number | null>(1);
   const [doseTimes, setDoseTimes] = useState<string[]>([getCurrentTime()]);
@@ -185,6 +207,7 @@ const AddMedicineScreen = () => {
     const newErrors: { [key: string]: string } = {};
     if (!name.trim()) newErrors.name = 'İlaç adı zorunludur.';
     if (!dosage.trim()) newErrors.dosage = 'Dozaj bilgisi zorunludur.';
+    if (!userFor) newErrors.userFor = 'Kullanıcı seçimi zorunludur.';
     if (!type) newErrors.type = 'İlaç türü seçmek zorunludur.';
     if (!frequency) newErrors.frequency = 'Sıklık seçmek zorunludur.';
 
@@ -225,7 +248,7 @@ const AddMedicineScreen = () => {
       const notificationIds: string[] = [];
       if (notificationsEnabled) {
         for (const doseTime of doseTimes) {
-          const notificationId = await scheduleReminder(name, doseTime);
+          const notificationId = await scheduleReminder(name, doseTime, userFor as string);
           if (notificationId) {
             notificationIds.push(notificationId);
           }
@@ -236,6 +259,7 @@ const AddMedicineScreen = () => {
       await addDoc(collection(db, 'users', user.uid, 'medicines'), {
         name,
         dosage,
+        userFor,
         type,
         frequency,
         doseTimes,
@@ -297,6 +321,20 @@ const AddMedicineScreen = () => {
             placeholderTextColor={COLORS.gray}
           />
           {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
+        </View>
+        
+        <View style={styles.formGroup}>
+          <LabelWithInfo label="İlacı Kullanan Kişi" infoText="Bu ilacı kimin kullanacağını seçin. Bildirimler buna göre kişiselleştirilir." />
+          <DropdownSelector
+            options={userOptions}
+            selectedValue={userFor}
+            onSelect={(value) => {
+              setUserFor(value);
+              if (errors.userFor) setErrors((prev) => ({ ...prev, userFor: '' }));
+            }}
+            placeholder="Kullanıcı seçiniz..."
+          />
+          {errors.userFor ? <Text style={styles.errorText}>{errors.userFor}</Text> : null}
         </View>
         <View style={styles.formGroup}>
           <LabelWithInfo label="Dozaj Bilgisi" infoText="Her bir dozda ne kadar ilaç alınacağını belirtin (örn: 500 mg, 1 tablet, 10 ml)." />

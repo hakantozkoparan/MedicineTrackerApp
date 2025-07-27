@@ -14,6 +14,7 @@ interface Medicine {
   id: string;
   name: string;
   dosage: string;
+  userFor: string;
   type: string;
   frequency: number;
   doseTimes: string[];
@@ -53,8 +54,8 @@ export default function MedicinesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const user = auth.currentUser;
-      if (!user) {
+      const user = auth?.currentUser;
+      if (!user || !auth || !db) {
         setLoading(false);
         return;
       }
@@ -88,8 +89,8 @@ export default function MedicinesScreen() {
                   await Notifications.cancelScheduledNotificationAsync(id);
                 }
               }
-              const user = auth.currentUser;
-              if (user) {
+              const user = auth?.currentUser;
+              if (user && auth && db) {
                 const medicineRef = doc(db, `users/${user.uid}/medicines`, item.id);
                 await updateDoc(medicineRef, {
                   isActive: false,
@@ -128,6 +129,7 @@ export default function MedicinesScreen() {
       </View>
 
       <View style={styles.cardBody}>
+        <Text style={styles.cardText}><Text style={styles.boldText}>Kullanan:</Text> {item.userFor || 'Ben'}</Text>
         <Text style={styles.cardText}><Text style={styles.boldText}>Dozaj:</Text> {item.dosage || 'Belirtilmemiş'}</Text>
         <Text style={styles.cardText}><Text style={styles.boldText}>Sıklık:</Text> Günde {item.frequency} defa</Text>
         <Text style={styles.cardText}>
@@ -243,7 +245,9 @@ export default function MedicinesScreen() {
         }
         ListEmptyComponent={() => (
           <View style={styles.centered}>
-            <Text style={styles.placeholderText}>Henüz hiç ilaç eklemediniz.</Text>
+            <Text style={styles.placeholderText}>
+              Henüz hiç ilaç eklemediniz.
+            </Text>
           </View>
         )}
       />

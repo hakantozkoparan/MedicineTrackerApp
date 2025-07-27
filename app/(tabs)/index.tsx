@@ -12,6 +12,7 @@ interface Medicine {
   id: string;
   name: string;
   dosage: string;
+  userFor: string;
   type: string;
   notificationsEnabled: boolean;
   doseTimes: string[];
@@ -135,7 +136,9 @@ export default function HomeScreen() {
     <View style={styles.medicineCard}>
       <MaterialCommunityIcons name={getMedicineIcon(item.type)} size={24} color={COLORS.primary} style={styles.medicineIcon} />
       <View style={styles.medicineDetails}>
-        <Text style={styles.medicineName}>{item.name}</Text>
+        <Text style={styles.medicineName}>
+          {item.userFor && item.userFor !== 'Ben' ? `${item.name} - ${item.userFor}` : item.name}
+        </Text>
         {item.doseTimes && item.doseTimes.length > 0 && (
           <Text style={styles.medicineTimes}>{item.doseTimes.join(', ')}</Text>
         )}
