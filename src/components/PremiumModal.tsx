@@ -243,24 +243,6 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
     }
   };
 
-  // Debug fonksiyonu - sadece development'ta göster
-  const handleDebugRevenueCat = async () => {
-    try {
-      const purchaseManager = PurchaseManager.getInstance();
-      await purchaseManager.testRevenueCat();
-    } catch (error) {}
-    Alert.alert(
-      'Debug Test Tamamlandı',
-      'RevenueCat test tamamlandı. Console logları Firebase\'e gönderildi.\n\nFirebase Console → Firestore → app_logs collection\'ından logları kontrol edebilirsiniz.',
-      [
-        {
-          text: 'Tamam',
-          onPress: () => {}
-        }
-      ]
-    );
-  };
-
   const renderPackageCard = (pkg: SubscriptionPackage) => {
     const isSelected = selectedPackage?.identifier === pkg.identifier;
     const isPopular = pkg.packageType === 'annual' || pkg.identifier.toLowerCase().includes('annual');
@@ -288,25 +270,28 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
           </View>
         )}
 
-        <View style={styles.packageHeader}>
-          <Text style={styles.packageTitle}>
-            {PurchaseManager.getSubscriptionTitle(pkg.packageType)}
-          </Text>
-          <Text style={styles.packagePrice}>
-            {displayPrice}{currency}
-          </Text>
-        </View>
+        <View style={styles.packageContent}>
+          <View style={styles.packageInfo}>
+            <Text style={styles.packageTitle}>
+              {PurchaseManager.getSubscriptionTitle(pkg.packageType)}
+            </Text>
+            <Text style={styles.packageBenefit}>
+              {PurchaseManager.getSubscriptionBenefit(pkg.packageType)}
+            </Text>
+          </View>
 
-        <Text style={styles.packageBenefit}>
-          {PurchaseManager.getSubscriptionBenefit(pkg.packageType)}
-        </Text>
-
-        <View style={styles.radioButton}>
-          <View style={[
-            styles.radioOuter,
-            isSelected && styles.radioSelected
-          ]}>
-            {isSelected && <View style={styles.radioInner} />}
+          <View style={styles.packageRight}>
+            <Text style={styles.packagePrice}>
+              {displayPrice}{currency}
+            </Text>
+            <View style={styles.radioButton}>
+              <View style={[
+                styles.radioOuter,
+                isSelected && styles.radioSelected
+              ]}>
+                {isSelected && <View style={styles.radioInner} />}
+              </View>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -432,16 +417,6 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
             >
               <Text style={styles.restoreButtonText}>
                 Önceki Satın Alımları Geri Yükle
-              </Text>
-            </TouchableOpacity>
-
-            {/* Debug Button - TestFlight için de göster */}
-            <TouchableOpacity
-              style={[styles.restoreButton, { backgroundColor: '#FF6B6B', marginTop: 10 }]}
-              onPress={handleDebugRevenueCat}
-            >
-              <Text style={styles.restoreButtonText}>
-                🧪 RevenueCat Debug Test
               </Text>
             </TouchableOpacity>
           </View>
@@ -607,6 +582,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     elevation: 4,
   },
+  packageContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  packageInfo: {
+    flex: 1,
+    paddingRight: SIZES.medium,
+  },
+  packageRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   popularBadge: {
     position: 'absolute',
     top: -10,
@@ -641,11 +630,14 @@ const styles = StyleSheet.create({
     ...FONTS.body2,
     fontWeight: '600',
     color: COLORS.dark,
+    marginBottom: 4,
   },
   packagePrice: {
     ...FONTS.body2,
     fontWeight: '700',
     color: COLORS.primary,
+    marginRight: SIZES.base,
+    textAlign: 'right',
   },
   packageBenefit: {
     ...FONTS.body4,
@@ -653,9 +645,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   radioButton: {
-    position: 'absolute',
-    top: SIZES.padding,
-    right: SIZES.padding,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   radioOuter: {
     width: 20,
