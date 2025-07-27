@@ -1,10 +1,19 @@
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/constants/theme.js';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
+
+// AdMob'u güvenli şekilde import et
+let AdMobBanner: any = null;
+try {
+  const adMobModule = require('expo-ads-admob');
+  AdMobBanner = adMobModule.AdMobBanner;
+} catch (error) {
+  console.log('AdMob not available in Expo Go');
+}
 
 export default function TabLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,7 +44,6 @@ export default function TabLayout() {
             }
           }
         } catch (firestoreError) {
-          // ...existing code...
           // Firestore okuma hatası, sadece Firebase Auth durumunu kullan
           isEmailVerified = user.emailVerified;
         }
@@ -44,7 +52,6 @@ export default function TabLayout() {
           setIsAuthenticated(true);
         } else {
           // Email doğrulanmamış, login'e yönlendir
-          // ...existing code...
           setIsAuthenticated(false);
           router.replace('/login');
         }
@@ -68,65 +75,86 @@ export default function TabLayout() {
     );
   }
 
-  // Authenticate olmamışsa boş döndür (zaten yönlendirme yapıldı)
   if (!isAuthenticated) {
     return null;
   }
+
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: COLORS.background, paddingTop: 50 }}>
       <StatusBar style="dark" backgroundColor="transparent" translucent />
-      <Tabs
-        screenOptions={({ route }) => ({
-          // Hide all headers by default, we will use custom ones
-          headerShown: false, 
-          
-          tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.darkGray,
-        tabBarStyle: {
-          backgroundColor: COLORS.white,
-          borderTopWidth: 1,
-          borderTopColor: COLORS.lightGray,
-          height: 90,
-          paddingBottom: 30,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'Poppins-SemiBold',
-          fontSize: 12,
-        },
-        tabBarIcon: ({ color, size, focused }) => {
-          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'alert-circle-outline';
-          if (route.name === 'index') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'medicines') {
-            iconName = focused ? 'medkit' : 'medkit-outline';
-          } else if (route.name === 'profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-        title: 'Ana sayfa'  // No options needed here as header is hidden globally
-        }}
-      />
-      <Tabs.Screen
-        name="medicines"
-        options={{
-          // We need to define the title for the tab bar label
-          title: 'İlaçlarım',
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          // We need to define the title for the tab bar label
-          title: 'Profil',
-        }}
-      />
-    </Tabs>
-    </>
+      <View style={{ flex: 1 }}>
+        {/* Sayfa içerikleri */}
+        <View style={{ flex: 1 }}>
+          <Tabs
+            screenOptions={({ route }) => ({
+              headerShown: false,
+              tabBarActiveTintColor: COLORS.primary,
+              tabBarInactiveTintColor: COLORS.darkGray,
+              tabBarStyle: {
+              backgroundColor: COLORS.white,
+              borderTopWidth: 1,
+              borderTopColor: COLORS.lightGray,
+              height: 90,
+              paddingBottom: 30,
+            },
+              tabBarLabelStyle: {
+                fontFamily: 'Poppins-SemiBold',
+                fontSize: 12,
+              },
+              tabBarIcon: ({ color, size, focused }) => {
+                let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'alert-circle-outline';
+                if (route.name === 'index') {
+                  iconName = focused ? 'home' : 'home-outline';
+                } else if (route.name === 'medicines') {
+                  iconName = focused ? 'medkit' : 'medkit-outline';
+                } else if (route.name === 'profile') {
+                  iconName = focused ? 'person' : 'person-outline';
+                }
+                return <Ionicons name={iconName} size={size} color={color} />;
+              },
+            })}
+          >
+            <Tabs.Screen name="index" options={{ title: 'Ana sayfa' }} />
+            <Tabs.Screen name="medicines" options={{ title: 'İlaçlarım' }} />
+            <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
+          </Tabs>
+        </View>
+        {/* AdMob Banner - Tab bar'ın tam üstünde, position absolute */}
+        <View style={{ position: 'absolute', bottom: 90, left: 0, right: 0 }}>
+          {AdMobBanner ? (
+            <AdMobBanner
+              bannerSize="smartBannerPortrait"
+              adUnitID="ca-app-pub-3940256099942544/6300978111" // TEST BANNER ID
+              servePersonalizedAds={false}
+              onDidFailToReceiveAdWithError={(err: any) => {
+                console.log('AdMob Test Banner error:', err);
+              }}
+              onAdViewDidReceiveAd={() => {
+                console.log('AdMob Test Banner loaded successfully!');
+              }}
+            />
+          ) : (
+            // Expo Go'da AdMob mevcut değilse placeholder göster
+            <View style={{
+              height: 50,
+              backgroundColor: COLORS.lightGray,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderTopWidth: 1,
+              borderTopColor: COLORS.gray,
+              borderBottomWidth: 1,
+              borderBottomColor: COLORS.gray
+            }}>
+              <Text style={{ color: COLORS.darkGray, fontSize: 12 }}>
+                📱 Banner Reklam Alanı
+              </Text>
+              <Text style={{ color: COLORS.gray, fontSize: 10 }}>
+                (Development Build'de gerçek reklam görünür)
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
   );
 }

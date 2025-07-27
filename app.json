@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.hkntzkprn.MedicineTrackerApp",
       "buildNumber": "10",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
       },
       "entitlements": {
         "aps-environment": "production"
@@ -25,7 +26,10 @@
         "backgroundColor": "#ffffff"
       },
       "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +47,15 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-ads-admob",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "userTrackingPermission": "Bu uygulama size daha alakalı reklamlar göstermek için izninizi istiyor."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
