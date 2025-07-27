@@ -389,4 +389,13 @@ export default {
   medicineReminderTitle: '💊 Recordatorio de Medicamento',
   medicineReminderBodySelf: '¡Es hora de tomar tu {medicineName}!',
   medicineReminderBodyOther: '¡Es hora de que {userFor} tome su {medicineName}!',
+  
+  // Permission messages
+  permissionNotificationTitle: 'Permiso de Notificación',
+  permissionNotificationMessage: 'Necesitamos permiso de notificación para que puedas recibir recordatorios de medicamentos a tiempo.',
+  permissionTrackingTitle: 'Permiso de Seguimiento',
+  permissionTrackingMessage: 'Nos gustaría tu permiso para mostrarte anuncios más relevantes y mejorar tu experiencia en la aplicación.',
+  permissionNotificationDescription: 'Esta aplicación necesita permiso de notificación para enviarte recordatorios de medicamentos.',
+  permissionTrackingDescription: 'Esta aplicación solicita tu permiso para mostrarte anuncios más relevantes y mejorar tu experiencia en la aplicación.',
+  trackingConsentMessage: 'Permito que mis datos sean rastreados para publicidad personalizada. (Opcional)',
 };

@@ -391,4 +391,13 @@ export default {
   medicineReminderTitle: '💊 Medicine Reminder',
   medicineReminderBodySelf: 'It\'s time to take your {medicineName} medicine!',
   medicineReminderBodyOther: 'It\'s time to take {medicineName} medicine for {userFor}!',
+  
+  // Permission messages
+  permissionNotificationTitle: 'Notification Permission',
+  permissionNotificationMessage: 'We need notification permission so you can receive medicine reminders on time.',
+  permissionTrackingTitle: 'Tracking Permission',
+  permissionTrackingMessage: 'We would like your permission to show you more relevant ads and improve your app experience.',
+  permissionNotificationDescription: 'This app needs notification permission to send you medicine reminders.',
+  permissionTrackingDescription: 'This app would like your permission to show you more relevant ads and improve your app experience.',
+  trackingConsentMessage: 'I allow my data to be tracked for personalized advertising. (Optional)',
 };

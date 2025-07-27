@@ -30,6 +30,7 @@ const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
+  const [allowTracking, setAllowTracking] = useState(false); // Tracking consent
 
   // Firebase konfigürasyon kontrolü
   React.useEffect(() => {
@@ -145,6 +146,8 @@ const RegisterScreen = () => {
         },
         role: 'member',
         emailVerified: false,
+        trackingConsent: allowTracking, // Kullanıcının tracking consent'i
+        trackingConsentDate: allowTracking ? new Date() : null,
       };
       
       try {
@@ -297,6 +300,19 @@ const RegisterScreen = () => {
           resetTrigger={captchaResetTrigger}
         />
 
+        {/* Tracking Consent Checkbox */}
+        <TouchableOpacity 
+          style={styles.checkboxContainer}
+          onPress={() => setAllowTracking(!allowTracking)}
+        >
+          <View style={[styles.checkbox, allowTracking && styles.checkboxChecked]}>
+            {allowTracking && <Text style={styles.checkboxTick}>✓</Text>}
+          </View>
+          <Text style={styles.checkboxText}>
+            {t('trackingConsentMessage')}
+          </Text>
+        </TouchableOpacity>
+
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
         ) : (
@@ -406,7 +422,39 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: 'bold',
     marginLeft: SIZES.base / 2,
-  }
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: SIZES.medium,
+    paddingHorizontal: SIZES.small,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: COLORS.gray,
+    borderRadius: 4,
+    marginRight: SIZES.small,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkboxTick: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: SIZES.small,
+    color: COLORS.darkGray,
+    lineHeight: 18,
+  },
 });
 
 export default RegisterScreen;

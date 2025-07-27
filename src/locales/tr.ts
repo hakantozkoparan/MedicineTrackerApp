@@ -388,4 +388,13 @@ export default {
   medicineReminderTitle: '💊 İlaç Hatırlatma',
   medicineReminderBodySelf: '{medicineName} ilacınızı alma zamanı geldi!',
   medicineReminderBodyOther: '{userFor} için {medicineName} ilacını alma zamanı geldi!',
+  
+  // Permission messages
+  permissionNotificationTitle: 'Bildirim İzni',
+  permissionNotificationMessage: 'İlaç hatırlatmalarını zamanında alabilmeniz için bildirim iznine ihtiyacımız var.',
+  permissionTrackingTitle: 'Takip İzni',
+  permissionTrackingMessage: 'Size daha alakalı reklamlar göstermek ve uygulama deneyimini iyileştirmek için izininizi istiyoruz.',
+  permissionNotificationDescription: 'Bu uygulama size ilaç hatırlatmaları göndermek için bildirim iznine ihtiyaç duyar.',
+  permissionTrackingDescription: 'Bu uygulama size daha alakalı reklamlar göstermek ve uygulama deneyimini iyileştirmek için izininizi istiyor.',
+  trackingConsentMessage: 'Kişiselleştirilmiş reklamlar için verilerimin takip edilmesine izin veriyorum. (İsteğe bağlı)',
 };

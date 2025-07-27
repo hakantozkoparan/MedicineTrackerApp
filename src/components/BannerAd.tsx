@@ -1,23 +1,54 @@
 import { COLORS } from '@/constants/theme';
 import { usePremiumLimit } from '@/hooks/usePremiumLimit';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
+import { getAuth } from 'firebase/auth';
 
-// AdMob'u güvenli şekilde import et
-let AdMobBanner: any = null;
+// Google Mobile Ads'ı güvenli şekilde import et
+let GoogleBannerAd: any = null;
+let BannerAdSize: any = null;
 try {
-  const adMobModule = require('expo-ads-admob');
-  AdMobBanner = adMobModule.AdMobBanner;
+  const googleAdsModule = require('react-native-google-mobile-ads');
+  GoogleBannerAd = googleAdsModule.BannerAd;
+  BannerAdSize = googleAdsModule.BannerAdSize;
 } catch (error) {
-  console.log('AdMob not available in Expo Go');
+  console.log('Google Mobile Ads not available in Expo Go');
 }
 
-interface BannerAdProps {
+interface BannerAdComponentProps {
   style?: any;
 }
 
-const BannerAd: React.FC<BannerAdProps> = ({ style }) => {
+const BannerAdComponent: React.FC<BannerAdComponentProps> = ({ style }) => {
   const { isPremium } = usePremiumLimit();
+  const [hasTrackingConsent, setHasTrackingConsent] = useState(false);
+  const auth = getAuth();
+
+  // Kullanıcının tracking consent'ini kontrol et
+  useEffect(() => {
+    const checkTrackingConsent = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('@/api/firebase');
+          if (db) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setHasTrackingConsent(userData.trackingConsent || false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking tracking consent:', error);
+        setHasTrackingConsent(false);
+      }
+    };
+
+    checkTrackingConsent();
+  }, [auth]);
 
   // Premium kullanıcılarda banner gösterme
   if (isPremium) {
@@ -35,16 +66,18 @@ const BannerAd: React.FC<BannerAdProps> = ({ style }) => {
       borderBottomWidth: 1,
       borderBottomColor: COLORS.gray
     }, style]}>
-      {AdMobBanner ? (
-        <AdMobBanner
-          bannerSize="smartBannerPortrait"
-          adUnitID="ca-app-pub-3940256099942544/6300978111" // TEST BANNER ID
-          servePersonalizedAds={false}
-          onDidFailToReceiveAdWithError={(err: any) => {
-            console.log('AdMob Banner error:', err);
+      {GoogleBannerAd ? (
+        <GoogleBannerAd
+          unitId="ca-app-pub-3940256099942544/6300978111" // Google Test Banner ID
+          size={BannerAdSize.BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: !hasTrackingConsent, // Consent yoksa non-personalized ads
           }}
-          onAdViewDidReceiveAd={() => {
-            console.log('AdMob Banner loaded successfully!');
+          onAdLoaded={() => {
+            console.log('✅ Test Banner Ad loaded successfully!');
+          }}
+          onAdFailedToLoad={(error: any) => {
+            console.log('❌ Test Banner Ad error:', error);
           }}
         />
       ) : (
@@ -62,4 +95,4 @@ const BannerAd: React.FC<BannerAdProps> = ({ style }) => {
   );
 };
 
-export default BannerAd;
+export default BannerAdComponent;

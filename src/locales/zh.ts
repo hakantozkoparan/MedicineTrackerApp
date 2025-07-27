@@ -389,4 +389,13 @@ export default {
   medicineReminderTitle: '💊 服药提醒',
   medicineReminderBodySelf: '现在是时候服用您的 {medicineName} 了！',
   medicineReminderBodyOther: '现在是时候让 {userFor} 服用 {medicineName} 了！',
+  
+  // Permission messages
+  permissionNotificationTitle: '通知权限',
+  permissionNotificationMessage: '我们需要通知权限，以便您能及时收到服药提醒。',
+  permissionTrackingTitle: '跟踪权限',
+  permissionTrackingMessage: '我们希望获得您的许可，以便为您显示更相关的广告并改善您的应用体验。',
+  permissionNotificationDescription: '此应用需要通知权限来向您发送服药提醒。',
+  permissionTrackingDescription: '此应用请求您的许可，以便为您显示更相关的广告并改善您的应用体验。',
+  trackingConsentMessage: '我允许我的数据被跟踪用于个性化广告。（可选）',
 };

@@ -11,13 +11,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hkntzkprn.MedicineTrackerApp",
-      "buildNumber": "10",
+      "buildNumber": "13",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
       },
       "entitlements": {
         "aps-environment": "production"
+      },
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
       }
     },
     "android": {
@@ -49,11 +52,21 @@
       ],
       "expo-font",
       [
-        "expo-ads-admob",
+        "expo-notifications",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
-          "userTrackingPermission": "Bu uygulama size daha alakalı reklamlar göstermek için izninizi istiyor."
+          "icon": "./src/assets/images/icon.png",
+          "color": "#ffffff",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "android_app_id": "ca-app-pub-3940256099942544~3347511713",
+          "ios_app_id": "ca-app-pub-3940256099942544~1458002511",
+          "user_tracking_usage_description": "This identifier will be used to deliver personalized ads to you.",
+          "delay_app_measurement_init": true,
+          "optimize_initialization": true
         }
       ]
     ],

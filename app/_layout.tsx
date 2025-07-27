@@ -1,5 +1,6 @@
 import { auth, db } from '@/api/firebase';
 import { LocalizationProvider, useLocalization } from '@/contexts/LocalizationContext';
+import PermissionManager from '@/services/PermissionManager';
 import PurchaseManager from '@/services/PurchaseManager';
 import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
@@ -39,7 +40,7 @@ function AppContent() {
   const typedDb: Firestore | null = db;
   
   // Localization context'i kullan
-  const { isLoading: languageLoading } = useLocalization();
+  const { isLoading: languageLoading, t } = useLocalization();
 
   const [fontsLoaded, fontError] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
@@ -122,6 +123,43 @@ function AppContent() {
     });
     return unsubscribe;
   }, []);
+
+  // Permissions request - sadece authenticated user için
+  useEffect(() => {
+    if (authReady && user && emailVerified) {
+      // Biraz gecikme ile permissions iste (UI stabilize olsun)
+      const requestPermissions = async () => {
+        try {
+          // Localization context'i PermissionManager'a geç
+          PermissionManager.setLocalizationContext({ t: t as (key: string) => string });
+          
+          // User'ın tracking consent'ini kontrol et
+          let userTrackingConsent = false;
+          try {
+            const { doc, getDoc } = await import('firebase/firestore');
+            const { db } = await import('@/api/firebase');
+            if (db) {
+              const userDocRef = doc(db, 'users', user.uid);
+              const userDoc = await getDoc(userDocRef);
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                userTrackingConsent = userData.trackingConsent || false;
+              }
+            }
+          } catch (error) {
+            console.error('Error checking tracking consent:', error);
+          }
+          
+          await PermissionManager.requestAllPermissions(userTrackingConsent);
+        } catch (error) {
+          console.error('Permissions request failed:', error);
+        }
+      };
+      
+      const timeoutId = setTimeout(requestPermissions, 2000); // 2 saniye gecikme
+      return () => clearTimeout(timeoutId);
+    }
+  }, [authReady, user, emailVerified, t]);
 
   // User değiştiğinde navigation guard'ı reset et
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
