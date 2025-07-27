@@ -410,7 +410,7 @@ premiumFeature_support_desc: 'Priority customer support service.',
   captchaSuccess: '✓ Verification successful',
   
   // Notification messages
-  medicineReminderTitle: '💊 Medicine Reminder',
+  medicineReminderTitle: 'Medicine Reminder',
   medicineReminderBodySelf: 'It\'s time to take your {medicineName} medicine!',
   medicineReminderBodyOther: 'It\'s time to take {medicineName} medicine for {userFor}!',
   

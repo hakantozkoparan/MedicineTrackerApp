@@ -400,7 +400,7 @@ export default {
   captchaSuccess: '✓ 验证成功',
   
   // Notification messages
-  medicineReminderTitle: '💊 服药提醒',
+  medicineReminderTitle: '服药提醒',
   medicineReminderBodySelf: '现在是时候服用您的 {medicineName} 了！',
   medicineReminderBodyOther: '现在是时候让 {userFor} 服用 {medicineName} 了！',
   

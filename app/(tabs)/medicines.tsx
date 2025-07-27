@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SIZES.large },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SIZES.large, paddingTop: SIZES.large, marginBottom: SIZES.base },
   title: { fontSize: SIZES.extraLarge, fontFamily: FONTS.bold, color: COLORS.accent },
-  listContentContainer: { paddingBottom: SIZES.large },
+  listContentContainer: { paddingBottom: SIZES.extraLarge + SIZES.large },
   placeholderText: { fontSize: SIZES.font, fontFamily: FONTS.regular, color: COLORS.gray, textAlign: 'center' },
   
   card: {
@@ -355,8 +355,8 @@ const styles = StyleSheet.create({
     paddingTop: SIZES.large,
   },
   premiumCard: {
-    marginTop: SIZES.medium,
-    marginBottom: SIZES.large,
+    marginTop: SIZES.extraLarge,
+    marginBottom: SIZES.extraLarge,
     borderRadius: SIZES.medium,
     overflow: 'hidden',
     shadowColor: '#000',

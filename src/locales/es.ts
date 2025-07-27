@@ -408,7 +408,7 @@ premiumFeature_support_desc: 'Servicio de atención al cliente prioritario.',
   captchaSuccess: '✓ Verificación exitosa',
   
   // Notification messages
-  medicineReminderTitle: '💊 Recordatorio de Medicamento',
+  medicineReminderTitle: 'Recordatorio de Medicamento',
   medicineReminderBodySelf: '¡Es hora de tomar tu {medicineName}!',
   medicineReminderBodyOther: '¡Es hora de que {userFor} tome su {medicineName}!',
   

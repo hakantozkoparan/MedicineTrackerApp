@@ -408,7 +408,7 @@ premiumFeature_support_desc: 'Приоритетная служба поддер
   captchaSuccess: '✓ Проверка успешна',
   
   // Notification messages
-  medicineReminderTitle: '💊 Напоминание о лекарстве',
+  medicineReminderTitle: 'Напоминание о лекарстве',
   medicineReminderBodySelf: 'Пришло время принять ваше лекарство {medicineName}!',
   medicineReminderBodyOther: 'Пришло время для {userFor} принять лекарство {medicineName}!',
   

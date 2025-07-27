@@ -408,7 +408,7 @@ premiumFeature_support_desc: 'प्राथमिकता ग्राहक 
   captchaSuccess: '✓ सत्यापन सफल',
 
   // Notification messages
-  medicineReminderTitle: '💊 दवा का अनुस्मारक',
+  medicineReminderTitle: 'दवा का अनुस्मारक',
   medicineReminderBodySelf: 'यह आपकी {medicineName} लेने का समय है!',
   medicineReminderBodyOther: 'यह {userFor} के लिए {medicineName} लेने का समय है!',
   

@@ -408,7 +408,7 @@ export default {
   captchaSuccess: '✓ Doğrulama başarılı',
   
   // Notification messages
-  medicineReminderTitle: '💊 İlaç Hatırlatma',
+  medicineReminderTitle: 'İlaç Hatırlatma',
   medicineReminderBodySelf: '{medicineName} ilacınızı alma zamanı geldi!',
   medicineReminderBodyOther: '{userFor} için {medicineName} ilacını alma zamanı geldi!',
   
