@@ -1,6 +1,7 @@
 import { db } from '@/api/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
+import * as Localization from 'expo-localization';
 import { collection, doc, getDoc, getDocs, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 
 export interface SecurityAttempt {
@@ -10,6 +11,9 @@ export interface SecurityAttempt {
     osVersion: string | null;
     deviceName: string | null;
     modelName: string | null;
+    locale?: string; // tr-TR, en-US gibi
+    region?: string; // TR, US gibi ülke kodu  
+    timezone?: string; // Europe/Istanbul gibi
   };
   ipAddress?: string;
   attempts: {
@@ -69,12 +73,28 @@ class SecurityManager {
 
   // Cihaz bilgilerini al
   async getDeviceInfo() {
-    return {
-      osName: Device.osName,
-      osVersion: Device.osVersion,
-      deviceName: Device.deviceName,
-      modelName: Device.modelName,
-    };
+    try {
+      return {
+        osName: Device.osName,
+        osVersion: Device.osVersion,
+        deviceName: Device.deviceName,
+        modelName: Device.modelName,
+        locale: Localization.getLocales()[0]?.languageTag || 'en-US', // tr-TR, en-US gibi
+        region: Localization.getLocales()[0]?.regionCode || 'US', // TR, US gibi ülke kodu
+        timezone: Localization.getCalendars()[0]?.timeZone || 'UTC', // Europe/Istanbul gibi
+      };
+    } catch (error) {
+      // Localization hatası durumunda varsayılan değerler
+      return {
+        osName: Device.osName,
+        osVersion: Device.osVersion,
+        deviceName: Device.deviceName,
+        modelName: Device.modelName,
+        locale: 'en-US',
+        region: 'US',
+        timezone: 'UTC',
+      };
+    }
   }
 
   // Güvenlik kontrolü - giriş/kayıt öncesi
@@ -84,6 +104,10 @@ class SecurityManager {
     waitTime?: number; // dakika cinsinden
   }> {
     try {
+      if (!db) {
+        return { allowed: true }; // DB yoksa izin ver
+      }
+      
       const deviceId = await this.getDeviceId();
       const securityDocRef = doc(db, 'security_attempts', deviceId);
       const securityDoc = await getDoc(securityDocRef);
@@ -194,6 +218,11 @@ class SecurityManager {
   // Deneme kaydı oluştur
   async recordAttempt(type: 'login' | 'register', success: boolean, email?: string): Promise<void> {
     try {
+      if (!db) {
+        console.warn('Database not available, skipping attempt record');
+        return;
+      }
+      
       const deviceId = await this.getDeviceId();
       const deviceInfo = await this.getDeviceInfo();
       const now = new Date();
@@ -249,6 +278,11 @@ class SecurityManager {
   // Admin için: Şüpheli cihazları listele
   async getSuspiciousDevices(): Promise<SecurityAttempt[]> {
     try {
+      if (!db) {
+        console.warn('Database not available, returning empty suspicious devices list');
+        return [];
+      }
+      
       const now = new Date();
       const oneDay = 24 * 60 * 60 * 1000;
       
@@ -286,6 +320,11 @@ class SecurityManager {
   // DEBUG: Test için sahte deneme kayıtları oluştur
   async createTestData(): Promise<void> {
     try {
+      if (!db) {
+        console.warn('Database not available, skipping test data creation');
+        return;
+      }
+      
       const deviceId = await this.getDeviceId();
       const deviceInfo = await this.getDeviceInfo();
       const now = new Date();
@@ -339,6 +378,11 @@ class SecurityManager {
   // Cihaz engelini kaldır (admin)
   async unblockDevice(deviceId: string): Promise<boolean> {
     try {
+      if (!db) {
+        console.warn('Database not available, cannot unblock device');
+        return false;
+      }
+      
       const securityDocRef = doc(db, 'security_attempts', deviceId);
       const securityDoc = await getDoc(securityDocRef);
       
@@ -364,6 +408,14 @@ class SecurityManager {
   // Günlük destek talebi limitini kontrol et
   async checkSupportTicketLimit(): Promise<{ allowed: boolean; reason?: string; remainingRequests?: number }> {
     try {
+      if (!db) {
+        console.warn('Database not available, blocking support ticket');
+        return {
+          allowed: false,
+          reason: 'Sistem hatası nedeniyle şu anda talep gönderilemiyor. Lütfen daha sonra tekrar deneyin.'
+        };
+      }
+      
       const deviceId = await this.getDeviceId();
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -407,6 +459,11 @@ class SecurityManager {
   // Destek talebini kaydet (deviceId ile)
   async recordSupportTicket(ticketData: any): Promise<boolean> {
     try {
+      if (!db) {
+        console.warn('Database not available, cannot record support ticket');
+        return false;
+      }
+      
       const deviceId = await this.getDeviceId();
       
       // Talep verilerini cihaz ID'si ile birlikte kaydet

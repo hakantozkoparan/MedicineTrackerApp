@@ -1,5 +1,6 @@
 import { auth, db } from '@/api/firebase';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from 'expo-router';
@@ -33,8 +34,7 @@ const getMedicineIcon = (type: string): React.ComponentProps<typeof MaterialComm
 };
 
 export default function HomeScreen() {
-  
-  
+  const { t } = useLocalization();
 
   const [userName, setUserName] = useState('');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -156,10 +156,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Hoş Geldin, {userName || '...'}</Text>
+          <Text style={styles.title}>{t('welcomeMessage')}, {userName || '...'}</Text>
         </View>
 
-        <Text style={styles.subTitle}>Bugünkü İlaçların</Text>
+        <Text style={styles.subTitle}>{t('todayReminders')}</Text>
         {medicines.length > 0 && (
           <View style={styles.infoContainer}>
             <MaterialCommunityIcons name="information" size={SIZES.font} color={COLORS.gray} style={styles.infoIconText} />
@@ -171,7 +171,7 @@ export default function HomeScreen() {
             data={medicines}
             renderItem={renderMedicine}
             keyExtractor={item => item.id}
-            ListEmptyComponent={<Text style={styles.emptyText}>Bugün için ilacın yok.</Text>}
+            ListEmptyComponent={<Text style={styles.emptyText}>{t('noRemindersToday')}</Text>}
             contentContainerStyle={{ paddingBottom: 100 }}
         />
       </View>

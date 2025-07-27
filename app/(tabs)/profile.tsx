@@ -3,11 +3,12 @@ import { useRouter } from 'expo-router';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import PremiumModal from '@/components/PremiumModal';
 import ProfileMenuItem from '@/components/ProfileMenuItem';
 import UserInfoCard from '@/components/UserInfoCard';
+import { useLocalization } from '@/hooks/useLocalization';
 import usePremiumLimit from '@/hooks/usePremiumLimit';
 
 export default function ProfileScreen() {
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
 
   const { isPremium, medicineCount, premiumStatus, refreshPremiumStatus } = usePremiumLimit();
+  const { t, currentLanguage, changeLanguage, getSupportedLanguages } = useLocalization();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -73,22 +75,22 @@ export default function ProfileScreen() {
 
   const handleSignOut = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Çıkış yapmak istediğinizden emin misiniz?',
+      t('logout'),
+      t('logoutConfirmMessage'),
       [
         {
-          text: 'Vazgeç',
+          text: t('cancel'),
           style: 'cancel',
         },
         {
-          text: 'Çıkış Yap',
+          text: t('logout'),
           onPress: async () => {
             try {
               await signOut(auth);
               router.replace('/login');
             } catch (error) {
               console.error('Error signing out: ', error);
-              Alert.alert('Hata', 'Çıkış yaparken bir sorun oluştu.');
+              Alert.alert(t('error'), t('logoutError'));
             }
           },
           style: 'destructive',
@@ -98,11 +100,29 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleLanguageChange = () => {
+    const languages = getSupportedLanguages();
+    const buttons = languages.map(lang => ({
+      text: `${lang.flag} ${lang.name}`,
+      onPress: () => changeLanguage(lang.code as any),
+      style: lang.code === currentLanguage ? 'default' : 'cancel' as any,
+    }));
+
+    Alert.alert(
+      t('language'),
+      t('selectLanguage'),
+      [
+        ...buttons,
+        { text: t('cancel'), style: 'cancel' }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.contentContainer}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.title}>{t('profile')}</Text>
         </View>
         
         <UserInfoCard userName={userName} userSurname={userSurname} userEmail={userEmail} />
@@ -111,20 +131,28 @@ export default function ProfileScreen() {
           {/* Premium Status Menu Item */}
           <ProfileMenuItem
             icon="diamond-outline"
-            title={isPremium ? "Premium Aktif" : "Premium'a Geç"}
+            title={isPremium ? t('premiumActive') : t('upgradeToPremium')}
             subtitle={
               isPremium 
                 ? `${premiumStatus?.expirationDate ? new Date(premiumStatus.expirationDate).toLocaleDateString('tr-TR') : 'Aktif'} tarihine kadar`
-                : "Sınırsız ilaç ekleyin ve daha fazlası"
+                : t('limitlessPremium')
             }
             onPress={() => setPremiumModalVisible(true)}
             textColor={isPremium ? COLORS.success : COLORS.primary}
           />
           
+          {/* Language Selection */}
+          <ProfileMenuItem
+            icon="language-outline"
+            title={t('language')}
+            subtitle={`${currentLanguage === 'tr' ? '🇹🇷 Türkçe' : '🇺🇸 English'}`}
+            onPress={handleLanguageChange}
+          />
+          
           {isAdmin && (
             <ProfileMenuItem
               icon="people-outline"
-              title="Kullanıcı Yönetimi"
+              title={t('manageUsers')}
               onPress={() => router.push('/admin/manage-users')}
               textColor={COLORS.danger} // Kırmızı renk
             />
@@ -155,23 +183,23 @@ export default function ProfileScreen() {
           )}
           <ProfileMenuItem
             icon="person-outline"
-            title="Hesap Bilgileri"
+            title={t('editProfile')}
             onPress={() => router.push('/edit-profile')}
           />
           <ProfileMenuItem
             icon="help-circle-outline"
-            title="Yardım & Destek"
+            title={t('contact')}
             onPress={() => router.push('/support-ticket')}
           />
           <View style={{marginTop: SIZES.large}} />
           <ProfileMenuItem
             icon="log-out-outline"
-            title="Çıkış Yap"
+            title={t('logout')}
             onPress={handleSignOut}
             isDestructive
           />
         </View>
-      </View>
+      </ScrollView>
       
       {/* Premium Modal */}
       <PremiumModal
@@ -192,9 +220,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  contentContainer: {
+  scrollView: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: SIZES.large,
+    paddingBottom: SIZES.extraLarge * 2, // Daha fazla boşluk ekle
   },
   header: {
     paddingTop: SIZES.large,
@@ -206,6 +237,7 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
   },
   menuContainer: {
-    flex: 1,
+    // flex kaldırıldı, padding eklendi
+    paddingBottom: SIZES.extraLarge * 2,
   },
 });

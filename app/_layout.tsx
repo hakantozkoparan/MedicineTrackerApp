@@ -1,4 +1,5 @@
 import { auth, db } from '@/api/firebase';
+import { LocalizationProvider, useLocalization } from '@/contexts/LocalizationContext';
 import PurchaseManager from '@/services/PurchaseManager';
 import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
@@ -25,7 +26,8 @@ console.warn = (...args) => {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+// Inner component that uses the localization context
+function AppContent() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -35,6 +37,9 @@ export default function RootLayout() {
   // Tip eklemesi
   const typedAuth: Auth | null = auth;
   const typedDb: Firestore | null = db;
+  
+  // Localization context'i kullan
+  const { isLoading: languageLoading } = useLocalization();
 
   const [fontsLoaded, fontError] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
@@ -132,7 +137,7 @@ export default function RootLayout() {
 
   // Effect for handling navigation after auth and fonts are ready
   useEffect(() => {
-    if (!authReady || !fontsLoaded) return;
+    if (!authReady || !fontsLoaded || languageLoading) return;
 
     if (fontError) {
       console.error('Font loading error:', fontError);
@@ -183,17 +188,17 @@ export default function RootLayout() {
     }, 100); // 100ms timeout
 
     return () => clearTimeout(navigationTimeout);
-  }, [authReady, fontsLoaded, user, emailVerified]); // segments kaldırıldı
+  }, [authReady, fontsLoaded, languageLoading, user, emailVerified]); // languageLoading eklendi
 
   // Hide the splash screen once everything is ready.
   useEffect(() => {
-    if (authReady && fontsLoaded) {
+    if (authReady && fontsLoaded && !languageLoading) {
       SplashScreen.hideAsync();
     }
-  }, [authReady, fontsLoaded]);
+  }, [authReady, fontsLoaded, languageLoading]);
 
-  // While loading auth and fonts, return null. The splash screen will be visible.
-  if (!authReady || !fontsLoaded) {
+  // While loading auth, fonts, or language, return null. The splash screen will be visible.
+  if (!authReady || !fontsLoaded || languageLoading) {
     return null;
   }
 
@@ -207,5 +212,14 @@ export default function RootLayout() {
         <Stack.Screen name="register" />
       </Stack>
     </>
+  );
+}
+
+// Main root component that provides the localization context
+export default function RootLayout() {
+  return (
+    <LocalizationProvider>
+      <AppContent />
+    </LocalizationProvider>
   );
 }

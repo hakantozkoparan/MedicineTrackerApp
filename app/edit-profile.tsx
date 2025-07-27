@@ -1,4 +1,5 @@
 import { auth, db } from '@/api/firebase';
+import BannerAd from '@/components/BannerAd';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { EmailAuthProvider, reauthenticateWithCredential, sendEmailVerification, signOut, updateEmail } from 'firebase/auth';
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 
 const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string }) => (
     <View style={styles.labelContainer}>
@@ -26,6 +28,7 @@ const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string })
 
 const EditProfileScreen = () => {
   const router = useRouter();
+  const { t, currentLanguage, languageVersion } = useLocalization();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
@@ -90,10 +93,10 @@ const EditProfileScreen = () => {
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
-    if (!name.trim()) newErrors.name = 'Ad alanı zorunludur.';
-    if (!surname.trim()) newErrors.surname = 'Soyad alanı zorunludur.';
-    if (!email.trim()) newErrors.email = 'E-posta alanı zorunludur.';
-    else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) newErrors.email = 'Geçerli bir e-posta adresi girin.';
+    if (!name.trim()) newErrors.name = t('firstNameRequired');
+    if (!surname.trim()) newErrors.surname = t('lastNameRequired');
+    if (!email.trim()) newErrors.email = t('emailProfileRequired');
+    else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) newErrors.email = t('invalidEmailAddress');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -107,12 +110,12 @@ const EditProfileScreen = () => {
     try {
       await sendEmailVerification(user);
       Alert.alert(
-        'Doğrulama Maili Gönderildi!', 
-        `${user.email} adresine yeni bir doğrulama maili gönderildi. Lütfen e-posta kutunuzu ve spam klasörünüzü kontrol edin.`
+        t('verificationEmailSent'), 
+        t('verificationEmailSentMessage').replace('{email}', user.email || '')
       );
     } catch (error: any) {
       console.error('Doğrulama maili gönderme hatası:', error);
-      Alert.alert('Hata', 'Doğrulama maili gönderilirken bir hata oluştu.');
+      Alert.alert(t('error'), t('verificationEmailError'));
     }
   };
 
@@ -122,12 +125,12 @@ const EditProfileScreen = () => {
     if (!user || !isAdmin) return;
 
     Alert.alert(
-      'Manuel Email Doğrulama',
-      'Bu kullanıcının email adresini manuel olarak doğrulanmış olarak işaretlemek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!',
+      t('manualEmailVerification'),
+      t('manualEmailVerificationMessage'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Onayla',
+          text: t('confirm'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -154,11 +157,11 @@ const EditProfileScreen = () => {
                 }
               });
               Alert.alert(
-                'Başarılı!', 
-                'Email adresi manuel olarak doğrulandı. Kullanıcı artık giriş yapabilir.',
+                t('success'), 
+                t('manualVerificationSuccess'),
                 [
                   {
-                    text: 'Tamam',
+                    text: t('ok'),
                     onPress: () => {
                       try {
                         router.back();
@@ -170,7 +173,7 @@ const EditProfileScreen = () => {
                 ]
               );
             } catch (error: any) {
-              Alert.alert('Hata', 'Manuel doğrulama işlemi başarısız oldu.');
+              Alert.alert(t('error'), t('manualVerificationError'));
             }
           }
         }
@@ -228,11 +231,11 @@ const EditProfileScreen = () => {
             }
           });
           Alert.alert(
-            'Email Güncellendi!', 
-            `E-posta adresiniz ${email} olarak güncellendi ve yeni adresinize doğrulama e-postası gönderildi.\n\nLütfen yeni e-posta adresinizi doğrulayın. Doğrulama sonrası yeni email ile giriş yapabileceksiniz.\n\nŞimdi çıkış yapılacak.`,
+            t('emailUpdated'), 
+            t('emailUpdateMessage').replace('{email}', email),
             [
               {
-                text: 'Tamam',
+                text: t('ok'),
                 onPress: async () => {
                   if (auth) {
                     await signOut(auth);
@@ -244,19 +247,19 @@ const EditProfileScreen = () => {
           );
         } catch (emailError: any) {
           if (emailError.code === 'auth/email-already-in-use') {
-            Alert.alert('Hata', 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.');
-            setErrors(prev => ({ ...prev, email: 'Bu e-posta adresi zaten kullanımda.' }));
+            Alert.alert(t('error'), t('emailAlreadyExists'));
+            setErrors(prev => ({ ...prev, email: t('emailAlreadyExists') }));
           } else if (emailError.code === 'auth/invalid-email') {
-            Alert.alert('Hata', 'Geçersiz e-posta adresi formatı.');
-            setErrors(prev => ({ ...prev, email: 'Geçersiz e-posta adresi.' }));
+            Alert.alert(t('error'), t('invalidEmailProfileFormat'));
+            setErrors(prev => ({ ...prev, email: t('invalidEmailAddress') }));
           } else if (emailError.code === 'auth/operation-not-allowed') {
             Alert.alert(
-              'Email Değişikliği Mümkün Değil',
-              'Firebase yapılandırması nedeniyle email değişikliği şu anda desteklenmiyor. Lütfen yönetici ile iletişime geçin.',
-              [{ text: 'Tamam' }]
+              t('emailChangeNotAllowed'),
+              t('emailChangeNotAllowedMessage'),
+              [{ text: t('ok') }]
             );
           } else {
-            Alert.alert('Hata', 'Email güncellenirken bir hata oluştu: ' + emailError.message);
+            Alert.alert(t('error'), t('accountUpdateError') + ': ' + emailError.message);
           }
           return;
         }
@@ -278,28 +281,28 @@ const EditProfileScreen = () => {
             throw firestoreError;
           }
         });
-        Alert.alert('Başarılı', 'Hesap bilgileri güncellendi.');
+        Alert.alert(t('success'), t('accountInfoUpdated'));
         router.back();
       }
     } catch (error: any) {
-      let errorMessage = 'Hesap bilgileri güncellenirken bir sorun oluştu.';
+      let errorMessage = t('accountUpdateError');
       if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Girdiğiniz şifre hatalı.';
-        setErrors(prev => ({ ...prev, password: 'Girdiğiniz şifre hatalı.' }));
+        errorMessage = t('wrongPassword');
+        setErrors(prev => ({ ...prev, password: t('wrongPassword') }));
       } else if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Bu e-posta adresi zaten kullanımda.';
-        setErrors(prev => ({ ...prev, email: 'Bu e-posta adresi zaten kullanımda.' }));
+        errorMessage = t('emailAlreadyExists');
+        setErrors(prev => ({ ...prev, email: t('emailAlreadyExists') }));
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Geçersiz e-posta adresi.';
-        setErrors(prev => ({ ...prev, email: 'Geçersiz e-posta adresi.' }));
+        errorMessage = t('invalidEmailAddress');
+        setErrors(prev => ({ ...prev, email: t('invalidEmailAddress') }));
       } else if (error.code === 'auth/requires-recent-login') {
-        errorMessage = 'Güvenlik nedeniyle yeniden giriş yapmanız gerekiyor.';
+        errorMessage = t('recentLoginRequiredMessage');
         Alert.alert(
-          'Yeniden Giriş Gerekli',
-          'Güvenlik nedeniyle yeniden giriş yapmanız gerekiyor.',
+          t('recentLoginRequired'),
+          t('recentLoginRequiredMessage'),
           [
             {
-              text: 'Tamam',
+              text: t('ok'),
               onPress: async () => {
                 if (auth) {
                   await signOut(auth);
@@ -311,7 +314,7 @@ const EditProfileScreen = () => {
         );
         return;
       }
-      Alert.alert('Hata', errorMessage);
+      Alert.alert(t('error'), errorMessage);
     }
   };
 
@@ -320,20 +323,20 @@ const EditProfileScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={`${currentLanguage}-${languageVersion}`}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
         </TouchableOpacity>
-        <Text style={styles.title}>Hesap Bilgilerini Düzenle</Text>
+        <Text style={styles.title}>{t('editProfileTitle')}</Text>
         <View style={{ width: 28 }} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="Ad" infoText="Adınızı girin." />
+          <LabelWithInfo label={t('firstNameLabel')} infoText="Adınızı girin." />
           <TextInput
             style={[styles.input, errors.name ? styles.inputError : null]}
-            placeholder="Adınız"
+            placeholder={t('firstNamePlaceholder')}
             value={name}
             onChangeText={(text) => {
               setName(text);
@@ -344,10 +347,10 @@ const EditProfileScreen = () => {
           {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
         </View>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="Soyad" infoText="Soyadınızı girin." />
+          <LabelWithInfo label={t('lastNameLabel')} infoText="Soyadınızı girin." />
           <TextInput
             style={[styles.input, errors.surname ? styles.inputError : null]}
-            placeholder="Soyadınız"
+            placeholder={t('lastNamePlaceholder')}
             value={surname}
             onChangeText={(text) => {
               setSurname(text);
@@ -358,10 +361,10 @@ const EditProfileScreen = () => {
           {errors.surname ? <Text style={styles.errorText}>{errors.surname}</Text> : null}
         </View>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="E-posta" infoText="E-posta adresinizi girin." />
+          <LabelWithInfo label={t('emailLabel')} infoText="E-posta adresinizi girin." />
           <TextInput
             style={[styles.input, errors.email ? styles.inputError : null]}
-            placeholder="E-posta Adresiniz"
+            placeholder={t('emailProfilePlaceholder')}
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -382,7 +385,7 @@ const EditProfileScreen = () => {
                 color={emailVerified ? COLORS.success : COLORS.warning} 
               />
               <Text style={[styles.emailStatusText, { color: emailVerified ? COLORS.success : COLORS.warning }]}>
-                {emailVerified ? 'Email Doğrulanmış ✓' : 'Email Doğrulanmamış ⚠️'}
+                {emailVerified ? t('emailVerified') : t('emailNotVerified')}
               </Text>
             </View>
             
@@ -392,7 +395,7 @@ const EditProfileScreen = () => {
                 onPress={resendVerificationEmail}
               >
                 <Ionicons name="mail-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.resendButtonText}>Doğrulama Maili Gönder</Text>
+                <Text style={styles.resendButtonText}>{t('resendVerificationEmail')}</Text>
               </TouchableOpacity>
             )}
             
@@ -403,7 +406,7 @@ const EditProfileScreen = () => {
                 onPress={manualEmailVerification}
               >
                 <Ionicons name="shield-checkmark-outline" size={16} color={COLORS.white} />
-                <Text style={styles.adminButtonText}>Manuel Doğrula (Admin)</Text>
+                <Text style={styles.adminButtonText}>{t('manualVerifyAdmin')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -411,10 +414,10 @@ const EditProfileScreen = () => {
         
         {showPasswordPrompt && (
           <View style={styles.formGroup}>
-            <LabelWithInfo label="Mevcut Şifre" infoText="E-posta değişikliği için mevcut şifrenizi girin." />
+            <LabelWithInfo label={t('currentPasswordLabel')} infoText={t('currentPasswordInfo')} />
             <TextInput
               style={[styles.input, errors.password ? styles.inputError : null]}
-              placeholder="Mevcut Şifreniz"
+              placeholder={t('currentPasswordPlaceholder')}
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
@@ -428,7 +431,7 @@ const EditProfileScreen = () => {
         )}
         
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Kaydet</Text>
+          <Text style={styles.saveButtonText}>{t('save')}</Text>
         </TouchableOpacity>
         
         {showPasswordPrompt && (
@@ -440,10 +443,13 @@ const EditProfileScreen = () => {
               setErrors(prev => ({ ...prev, password: '' }));
             }}
           >
-            <Text style={styles.saveButtonText}>İptal</Text>
+            <Text style={styles.saveButtonText}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* Banner Ad */}
+      <BannerAd style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
     </SafeAreaView>
   );
 };

@@ -1,6 +1,7 @@
 import { auth, db } from '@/api/firebase';
 import PremiumModal from '@/components/PremiumModal';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 import usePremiumLimit from '@/hooks/usePremiumLimit';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,6 +40,7 @@ const getMedicineIcon = (type: string): React.ComponentProps<typeof MaterialComm
 
 export default function MedicinesScreen() {
   const router = useRouter();
+  const { t, currentLanguage, languageVersion } = useLocalization();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
@@ -75,12 +77,12 @@ export default function MedicinesScreen() {
 
   const handleDelete = async (item: Medicine) => {
     Alert.alert(
-      "İlacı Sil",
-      `"${item.name}" adlı ilacı silmek istediğinizden emin misiniz?`,
+      t('deleteMedicineTitle'),
+      `"${item.name}" ${t('deleteMedicineConfirm')}`,
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t('cancelDelete'), style: "cancel" },
         {
-          text: "Sil",
+          text: t('confirmDelete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -99,7 +101,7 @@ export default function MedicinesScreen() {
                 });
               }
             } catch {
-              Alert.alert("Hata", "İlaç silinirken bir sorun oluştu.");
+              Alert.alert(t('error'), t('errorDeletingMedicine'));
             }
           },
         },
@@ -129,13 +131,13 @@ export default function MedicinesScreen() {
       </View>
 
       <View style={styles.cardBody}>
-        <Text style={styles.cardText}><Text style={styles.boldText}>Kullanan:</Text> {item.userFor || 'Ben'}</Text>
-        <Text style={styles.cardText}><Text style={styles.boldText}>Dozaj:</Text> {item.dosage || 'Belirtilmemiş'}</Text>
-        <Text style={styles.cardText}><Text style={styles.boldText}>Sıklık:</Text> Günde {item.frequency} defa</Text>
+        <Text style={styles.cardText}><Text style={styles.boldText}>{t('userLabel')}:</Text> {item.userFor || t('meUser')}</Text>
+        <Text style={styles.cardText}><Text style={styles.boldText}>{t('dosage')}:</Text> {item.dosage || 'Belirtilmemiş'}</Text>
+        <Text style={styles.cardText}><Text style={styles.boldText}>{t('frequency')}:</Text> {t('frequencyTimesPerDay')} {item.frequency} {t('timesSuffix')}</Text>
         <Text style={styles.cardText}>
-          <Text style={styles.boldText}>Bildirimler:</Text> 
+          <Text style={styles.boldText}>{t('notificationStatus')}:</Text> 
           <Text style={{ color: item.notificationsEnabled ? COLORS.success : COLORS.danger }}>
-            {item.notificationsEnabled ? ' Açık' : ' Kapalı'}
+            {item.notificationsEnabled ? ` ${t('notificationOn')}` : ` ${t('notificationOff')}`}
           </Text>
         </Text>
       </View>
@@ -168,7 +170,7 @@ export default function MedicinesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={`${currentLanguage}-${languageVersion}`}>
       <FlatList
         data={medicines}
         renderItem={renderMedicineItem}
@@ -177,7 +179,7 @@ export default function MedicinesScreen() {
         ListHeaderComponent={
             <View style={styles.headerContainer}>
               <View style={styles.header}>
-                <Text style={styles.title}>İlaçlarım</Text>
+                <Text style={styles.title}>{t('medicines')}</Text>
                 <TouchableOpacity onPress={handleAddMedicine}>
                     <Ionicons name="add-circle" size={32} color={COLORS.primary} />
                 </TouchableOpacity>
@@ -197,8 +199,8 @@ export default function MedicinesScreen() {
                         <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
                       </View>
                       <View style={styles.premiumTextContainer}>
-                        <Text style={styles.premiumTitle}>Premium'a Yükselt</Text>
-                        <Text style={styles.premiumSubtitle}>Sınırsız ilaç ekleyin</Text>
+                        <Text style={styles.premiumTitle}>{t('upgradeTitle')}</Text>
+                        <Text style={styles.premiumSubtitle}>{t('unlimitedMedicines')}</Text>
                       </View>
                     </View>
                     
@@ -212,7 +214,7 @@ export default function MedicinesScreen() {
                         />
                       </View>
                       <Text style={styles.limitText}>
-                        {medicineCount}/{medicineLimit} ilaç kullanıyor
+                        {medicineCount}/{medicineLimit} {t('medicinesUsing')}
                       </Text>
                     </View>
 
@@ -223,7 +225,7 @@ export default function MedicinesScreen() {
                         activeOpacity={0.8}
                       >
                         <MaterialCommunityIcons name="rocket-launch" size={20} color="#FFFFFF" />
-                        <Text style={styles.premiumCTAText}>Hemen Başla</Text>
+                        <Text style={styles.premiumCTAText}>{t('startNow')}</Text>
                         <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
                       </TouchableOpacity>
                     )}
@@ -235,7 +237,7 @@ export default function MedicinesScreen() {
                         activeOpacity={0.8}
                       >
                         <MaterialCommunityIcons name="star-outline" size={18} color="#FFFFFF" />
-                        <Text style={styles.premiumCTASecondaryText}>Premium'u Keşfet</Text>
+                        <Text style={styles.premiumCTASecondaryText}>{t('explorePremium')}</Text>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
@@ -246,7 +248,7 @@ export default function MedicinesScreen() {
         ListEmptyComponent={() => (
           <View style={styles.centered}>
             <Text style={styles.placeholderText}>
-              Henüz hiç ilaç eklemediniz.
+              {t('noMedicinesAdded')}
             </Text>
           </View>
         )}

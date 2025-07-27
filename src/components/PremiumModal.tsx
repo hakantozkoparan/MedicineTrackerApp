@@ -1,4 +1,5 @@
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 import PurchaseManager, { SubscriptionPackage } from '@/services/PurchaseManager';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,32 +30,32 @@ const PREMIUM_FEATURES = [
   {
     icon: 'medical-services',
     iconFamily: 'MaterialIcons',
-    title: 'Sınırsız İlaç Ekleme',
-    description: 'İstediğiniz kadar ilaç ekleyip takip edebilirsiniz',
+    titleKey: 'premiumFeatureUnlimited',
+    descriptionKey: 'premiumFeatureUnlimitedDesc',
   },
   {
     icon: 'notifications-active',
     iconFamily: 'MaterialIcons',
-    title: 'Gelişmiş Hatırlatıcılar',
-    description: 'Özelleştirilebilir bildirimler ve hatırlatma ayarları',
+    titleKey: 'premiumFeatureReminders',
+    descriptionKey: 'premiumFeatureRemindersDesc',
   },
   {
     icon: 'insights',
     iconFamily: 'MaterialIcons',
-    title: 'Detaylı İstatistikler',
-    description: 'İlaç kullanım geçmişiniz ve analiz raporları',
+    titleKey: 'premiumFeatureStats',
+    descriptionKey: 'premiumFeatureStatsDesc',
   },
   {
     icon: 'cloud-sync',
     iconFamily: 'MaterialIcons',
-    title: 'Bulut Yedekleme',
-    description: 'Verileriniz otomatik olarak bulutta güvende',
+    titleKey: 'premiumFeatureCloud',
+    descriptionKey: 'premiumFeatureCloudDesc',
   },
   {
     icon: 'support-agent',
     iconFamily: 'MaterialIcons',
-    title: 'Premium Destek',
-    description: 'Öncelikli müşteri destek hizmeti',
+    titleKey: 'premiumFeatureSupport',
+    descriptionKey: 'premiumFeatureSupportDesc',
   },
 ];
 
@@ -120,6 +121,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
   onPurchaseSuccess,
   currentMedicineCount = 0,
 }) => {
+  const { t } = useLocalization();
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<SubscriptionPackage | null>(null);
   const [loading, setLoading] = useState(false);
@@ -158,7 +160,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('Hata', 'Lütfen bir abonelik paketi seçin.');
+      Alert.alert(t('error'), t('selectSubscriptionPackage'));
       return;
     }
     setPurchasing(true);
@@ -167,11 +169,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       const success = await purchaseManager.purchaseSubscription(selectedPackage);
       if (success) {
         Alert.alert(
-          'Tebrikler! 🎉',
-          'Premium aboneliğiniz başarıyla aktif edildi. Artık sınırsız ilaç ekleyebilirsiniz!',
+          t('congrats'),
+          t('premiumActivated'),
           [
             {
-              text: 'Harika!',
+              text: t('awesome'),
               onPress: () => {
                 onPurchaseSuccess?.();
                 onClose();
@@ -181,11 +183,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
         );
       } else {
         Alert.alert(
-          'Satın Alma Başarısız',
-          'Abonelik satın alınırken bir hata oluştu. Lütfen tekrar deneyin.',
+          t('purchaseFailed'),
+          t('purchaseError'),
           [
             {
-              text: 'Tamam',
+              text: t('ok'),
               onPress: () => {}
             }
           ]
@@ -193,11 +195,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       }
     } catch (error) {
       Alert.alert(
-        'Satın Alma Hatası',
-        `Abonelik satın alınırken bir hata oluştu.\n\nHata: ${error instanceof Error ? error.message : String(error)}\n\nLütfen tekrar deneyin.`,
+        t('purchaseErrorTitle'),
+        `${t('purchaseErrorDetail')}\n\n${error instanceof Error ? error.message : String(error)}\n\n${t('tryAgain')}`,
         [
           {
-            text: 'Tamam',
+            text: t('ok'),
             onPress: () => {}
           }
         ]
@@ -217,11 +219,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
         onClose();
       } else {
         Alert.alert(
-          'Geri Yükleme',
-          'Geri yüklenecek satın alım bulunamadı.',
+          t('restoreTitle'),
+          t('restoreNotFound'),
           [
             {
-              text: 'Tamam',
+              text: t('ok'),
               onPress: () => {}
             }
           ]
@@ -229,11 +231,11 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       }
     } catch (error) {
       Alert.alert(
-        'Geri Yükleme Hatası',
-        `Satın alımlar geri yüklenirken bir hata oluştu.\n\nHata: ${error instanceof Error ? error.message : String(error)}`,
+        t('restoreErrorTitle'),
+        `${t('restoreErrorDetail')}\n\n${error instanceof Error ? error.message : String(error)}`,
         [
           {
-            text: 'Tamam',
+            text: t('ok'),
             onPress: () => {}
           }
         ]
@@ -251,8 +253,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       setSelectedPackage(pkg);
     };
 
-    // Fiyatı ülkeye göre en doğru şekilde göster
-    let displayPrice = pkg.localizedPriceString || pkg.product.priceString || 'Fiyat bulunamadı';
+    let displayPrice = pkg.localizedPriceString || pkg.product.priceString || t('priceNotFound');
     let currency = pkg.product.currencyCode ? ` ${pkg.product.currencyCode}` : '';
 
     return (
@@ -266,17 +267,17 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       >
         {isPopular && (
           <View style={styles.popularBadge}>
-            <Text style={styles.popularBadgeText}>EN POPÜLER</Text>
+            <Text style={styles.popularBadgeText}>{t('mostPopular')}</Text>
           </View>
         )}
 
         <View style={styles.packageContent}>
           <View style={styles.packageInfo}>
             <Text style={styles.packageTitle}>
-              {PurchaseManager.getSubscriptionTitle(pkg.packageType)}
+              {t(`subscriptionTitle_${pkg.packageType}` as any)}
             </Text>
             <Text style={styles.packageBenefit}>
-              {PurchaseManager.getSubscriptionBenefit(pkg.packageType)}
+              {t(`subscriptionBenefit_${pkg.packageType}` as any)}
             </Text>
           </View>
 
@@ -300,13 +301,12 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
 
   const renderFeature = (feature: typeof PREMIUM_FEATURES[0], index: number) => {
     const IconComponent = feature.iconFamily === 'MaterialCommunityIcons' ? MaterialCommunityIcons : MaterialIcons;
-    
     return (
       <View key={index} style={styles.featureRow}>
         <IconComponent name={feature.icon as any} size={24} color={COLORS.primary} />
         <View style={styles.featureText}>
-          <Text style={styles.featureTitle}>{feature.title}</Text>
-          <Text style={styles.featureDescription}>{feature.description}</Text>
+          <Text style={styles.featureTitle}>{t(feature.titleKey as any)}</Text>
+          <Text style={styles.featureDescription}>{t(feature.descriptionKey as any)}</Text>
         </View>
       </View>
     );
@@ -337,8 +337,8 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
             
             <View style={styles.headerCenter}>
               <MaterialCommunityIcons name="crown" size={40} color="#FFD700" />
-              <Text style={styles.headerTitle}>Premium'a Geçin</Text>
-              <Text style={styles.headerSubtitle}>Sınırsız özellikler ile daha fazlası</Text>
+              <Text style={styles.headerTitle}>{t('goPremium')}</Text>
+              <Text style={styles.headerSubtitle}>{t('moreFeatures')}</Text>
             </View>
             
             <View style={styles.placeholder} />
@@ -352,10 +352,10 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
               <View style={styles.statusIcon}>
                 <MaterialCommunityIcons name="information" size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.statusTitle}>Mevcut Durumunuz</Text>
+              <Text style={styles.statusTitle}>{t('currentStatus')}</Text>
             </View>
             <Text style={styles.statusText}>
-              {currentMedicineCount}/3 ilaç eklemiş bulunmaktasınız.
+              {t('currentMedicineCount').replace('{count}', String(currentMedicineCount)).replace('{limit}', '3')}
             </Text>
             <View style={styles.limitBar}>
               <View 
@@ -369,18 +369,18 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
 
           {/* Premium Features */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Premium Özellikler</Text>
+            <Text style={styles.sectionTitle}>{t('premiumFeatures')}</Text>
             {PREMIUM_FEATURES.map(renderFeature)}
           </View>
 
           {/* Subscription Packages */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Abonelik Seçenekleri</Text>
+            <Text style={styles.sectionTitle}>{t('subscriptionOptions')}</Text>
             
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Paketler yükleniyor...</Text>
+                <Text style={styles.loadingText}>{t('loadingPackages')}</Text>
               </View>
             ) : (
               packages.map(renderPackageCard)
@@ -403,7 +403,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
                 <View style={styles.buttonContent}>
                   <MaterialCommunityIcons name="crown" size={20} color="#FFFFFF" />
                   <Text style={styles.purchaseButtonText}>
-                    Premium'a Başla
+                    {t('startPremium')}
                   </Text>
                   <MaterialCommunityIcons name="arrow-right" size={20} color="#FFFFFF" />
                 </View>
@@ -416,7 +416,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
               disabled={loading}
             >
               <Text style={styles.restoreButtonText}>
-                Önceki Satın Alımları Geri Yükle
+                {t('restorePurchases')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -424,8 +424,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
           {/* Terms */}
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
-              Devam ederek Kullanım Şartları ve Gizlilik Politikası'nı kabul etmiş olursunuz.
-              Abonelik otomatik olarak yenilenir ve iPtal edilene kadar devam eder.
+              {t('acceptTerms')}
             </Text>
           </View>
         </ScrollView>

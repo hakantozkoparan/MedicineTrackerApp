@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/theme.js';
+import { useLocalization } from '@/hooks/useLocalization';
 import { usePremiumLimit } from '@/hooks/usePremiumLimit';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
@@ -22,6 +23,7 @@ export default function TabLayout() {
   const router = useRouter();
   const auth = getAuth();
   const { isPremium } = usePremiumLimit();
+  const { t, currentLanguage, languageVersion } = useLocalization();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -88,6 +90,7 @@ export default function TabLayout() {
         {/* Sayfa içerikleri */}
         <View style={{ flex: 1 }}>
           <Tabs
+            key={`${currentLanguage}-${languageVersion}`} // Dil değiştiğinde tüm tabları yeniden render et
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarActiveTintColor: COLORS.primary,
@@ -116,9 +119,9 @@ export default function TabLayout() {
               },
             })}
           >
-            <Tabs.Screen name="index" options={{ title: 'Ana sayfa' }} />
-            <Tabs.Screen name="medicines" options={{ title: 'İlaçlarım' }} />
-            <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
+            <Tabs.Screen name="index" options={{ title: t('home') }} />
+            <Tabs.Screen name="medicines" options={{ title: t('medicines') }} />
+            <Tabs.Screen name="profile" options={{ title: t('profile') }} />
           </Tabs>
         </View>
         {/* AdMob Banner - Premium kullanıcılarda gösterilmez */}

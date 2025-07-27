@@ -1,4 +1,5 @@
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -15,6 +16,7 @@ const SimpleCaptcha: React.FC<SimpleCaptchaProps> = ({ onVerified, resetTrigger 
   const [userAnswer, setUserAnswer] = useState<string>('');
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [showError, setShowError] = useState<boolean>(false);
+  const { t } = useLocalization();
 
   // Generate random numbers and operator
   const generateCaptcha = () => {
@@ -92,7 +94,7 @@ const SimpleCaptcha: React.FC<SimpleCaptchaProps> = ({ onVerified, resetTrigger 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Güvenlik Doğrulaması</Text>
+      <Text style={styles.label}>{t('securityVerification')}</Text>
       <View style={styles.captchaContainer}>
         <View style={styles.questionContainer}>
           <Text style={styles.questionText}>
@@ -105,7 +107,7 @@ const SimpleCaptcha: React.FC<SimpleCaptchaProps> = ({ onVerified, resetTrigger 
             isVerified && styles.inputSuccess,
             showError && styles.inputError
           ]}
-          placeholder="?"
+          placeholder={t('captchaPlaceholder')}
           value={userAnswer}
           onChangeText={setUserAnswer}
           keyboardType="numeric"
@@ -114,10 +116,10 @@ const SimpleCaptcha: React.FC<SimpleCaptchaProps> = ({ onVerified, resetTrigger 
         />
       </View>
       {showError && (
-        <Text style={styles.errorText}>Yanlış cevap. Tekrar deneyin.</Text>
+        <Text style={styles.errorText}>{t('captchaWrongAnswer')}</Text>
       )}
       {isVerified && (
-        <Text style={styles.successText}>✓ Doğrulama başarılı</Text>
+        <Text style={styles.successText}>{t('captchaSuccess')}</Text>
       )}
     </View>
   );

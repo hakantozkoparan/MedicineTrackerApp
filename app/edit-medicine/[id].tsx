@@ -1,4 +1,5 @@
 import { auth, db } from '@/api/firebase';
+import BannerAd from '@/components/BannerAd';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
@@ -22,19 +23,25 @@ import {
 import DropdownSelector, { DropdownOption } from '@/components/DropdownSelector';
 import OptionSelector, { Option } from '@/components/OptionSelector';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 
-const scheduleReminder = async (medicineName: string, doseTime: string, userFor: string): Promise<string | null> => {
+const scheduleReminder = async (
+  medicineName: string, 
+  doseTime: string, 
+  userFor: string, 
+  t: any
+): Promise<string | null> => {
   try {
     const [hour, minute] = doseTime.split(':').map(Number);
     
     // Bildirim metni kişiye göre ayarla
     const notificationBody = userFor === 'Ben' 
-      ? `${medicineName} ilacınızı alma zamanı!`
-      : `${userFor} için ${medicineName} ilacını alma zamanı!`;
+      ? t('medicineReminderBodySelf').replace('{medicineName}', medicineName)
+      : t('medicineReminderBodyOther').replace('{medicineName}', medicineName).replace('{userFor}', userFor);
     
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'İlaç Hatırlatma',
+        title: t('medicineReminderTitle'),
         body: notificationBody,
         sound: 'default',
         badge: 1,
@@ -95,10 +102,34 @@ const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string })
 
 const EditMedicineScreen = () => {
   const router = useRouter();
+  const { t, currentLanguage, languageVersion } = useLocalization();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [loading, setLoading] = useState(true);
   const [originalNotificationIds, setOriginalNotificationIds] = useState<string[]>([]);
+
+  // Dynamic medicine types based on localization
+  const medicineTypes: Option[] = [
+    { label: t('tabletType'), value: 'Hap', icon: 'pill' },
+    { label: t('syrupType'), value: 'Şurup', icon: 'bottle-tonic-plus-outline' },
+    { label: t('injectionType'), value: 'İğne', icon: 'needle' },
+    { label: t('otherType'), value: 'Diğer', icon: 'medical-bag' },
+  ];
+
+  // Dynamic user options based on localization
+  const userOptions: DropdownOption[] = [
+    { label: t('meUser'), value: 'Ben' },
+    { label: t('motherUser'), value: 'Anne' },
+    { label: t('fatherUser'), value: 'Baba' },
+    { label: t('grandmotherUser'), value: 'Anneanne' },
+    { label: t('grandmotherPaternalUser'), value: 'Babaanne' },
+    { label: t('grandfatherUser'), value: 'Dede' },
+    { label: t('siblingUser'), value: 'Kardeş' },
+    { label: t('spouseUser'), value: 'Eş' },
+    { label: t('childUser'), value: 'Çocuk' },
+    { label: t('relativeUser'), value: 'Akraba' },
+    { label: t('otherUser'), value: 'Diğer' },
+  ];
 
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
@@ -182,11 +213,11 @@ const EditMedicineScreen = () => {
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
-    if (!name.trim()) newErrors.name = 'İlaç adı zorunludur.';
-    if (!dosage.trim()) newErrors.dosage = 'Dozaj bilgisi zorunludur.';
-    if (!userFor) newErrors.userFor = 'Kullanıcı seçimi zorunludur.';
-    if (!type) newErrors.type = 'İlaç türü seçmek zorunludur.';
-    if (!frequency) newErrors.frequency = 'Sıklık seçmek zorunludur.';
+    if (!name.trim()) newErrors.name = t('medicineNameRequired');
+    if (!dosage.trim()) newErrors.dosage = t('dosageRequired');
+    if (!userFor) newErrors.userFor = t('userSelectionRequired');
+    if (!type) newErrors.type = t('medicineTypeRequired');
+    if (!frequency) newErrors.frequency = t('frequencySelectionRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -199,15 +230,15 @@ const EditMedicineScreen = () => {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'İzin Gerekli',
-          'Hatırlatıcıların çalışması için bildirim izinlerine ihtiyaç var. Lütfen ayarlardan izinleri etkinleştirin.'
+          t('permissionRequired'),
+          t('notificationPermissionMessage')
         );
         return;
       }
     }
 
     if (!auth || !db) {
-      Alert.alert('Hata', 'Firebase bağlantısı kurulamadı.');
+      Alert.alert(t('error'), t('firebaseConnectionError'));
       return;
     }
 
@@ -225,7 +256,7 @@ const EditMedicineScreen = () => {
       const newNotificationIds: string[] = [];
       if (notificationsEnabled) {
         for (const doseTime of doseTimes) {
-          const notificationId = await scheduleReminder(name, doseTime, userFor as string);
+          const notificationId = await scheduleReminder(name, doseTime, userFor as string, t);
           if (notificationId) {
             newNotificationIds.push(notificationId);
           }
@@ -244,11 +275,11 @@ const EditMedicineScreen = () => {
         notificationIds: newNotificationIds,
       });
 
-      Alert.alert('Başarılı', 'İlaç bilgileri güncellendi.');
+      Alert.alert(t('success'), t('medicineUpdated'));
       router.back();
     } catch (error) {
       console.error("İlaç güncellenirken hata oluştu: ", error);
-      Alert.alert("Hata", "İlaç güncellenirken bir sorun oluştu.");
+      Alert.alert(t('error'), t('accountUpdateError'));
     }
   };
 
@@ -257,20 +288,24 @@ const EditMedicineScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={`${currentLanguage}-${languageVersion}`}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
         </TouchableOpacity>
-        <Text style={styles.title}>İlaç Düzenle</Text>
+        <Text style={styles.title}>{t('editMedicine')}</Text>
         <View style={{ width: 28}} />
       </View>
+
+      {/* Banner Ad - Header altında */}
+      <BannerAd />
+
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="İlaç Adı" infoText="Takip etmek istediğiniz ilacın adını girin (örn: Parol, Aspirin)." />
+          <LabelWithInfo label={t('medicineName')} infoText={t('medicineNameInfo')} />
           <TextInput
             style={[styles.input, errors.name ? styles.inputError : null]}
-            placeholder="Örn: Parol"
+            placeholder={t('medicineNamePlaceholder')}
             value={name}
             onChangeText={(text) => {
               setName(text);
@@ -282,7 +317,7 @@ const EditMedicineScreen = () => {
         </View>
         
         <View style={styles.formGroup}>
-          <LabelWithInfo label="İlacı Kullanan Kişi" infoText="Bu ilacı kimin kullanacağını seçin. Bildirimler buna göre kişiselleştirilir." />
+          <LabelWithInfo label={t('medicineUserLabel')} infoText={t('medicineUserInfo')} />
           <DropdownSelector
             options={userOptions}
             selectedValue={userFor}
@@ -290,16 +325,16 @@ const EditMedicineScreen = () => {
               setUserFor(value);
               if (errors.userFor) setErrors((prev) => ({ ...prev, userFor: '' }));
             }}
-            placeholder="Kullanıcı seçiniz..."
+            placeholder={t('selectUser')}
           />
           {errors.userFor ? <Text style={styles.errorText}>{errors.userFor}</Text> : null}
         </View>
         
         <View style={styles.formGroup}>
-          <LabelWithInfo label="Dozaj Bilgisi" infoText="Her bir dozda ne kadar ilaç alınacağını belirtin (örn: 500 mg, 1 tablet, 10 ml)." />
+          <LabelWithInfo label={t('dosageLabel')} infoText={t('dosageInfo')} />
           <TextInput
             style={[styles.input, errors.dosage ? styles.inputError : null]}
-            placeholder="Örn: 500mg, 10ml"
+            placeholder={t('dosagePlaceholder')}
             value={dosage}
             onChangeText={(text) => {
               setDosage(text);
@@ -310,7 +345,7 @@ const EditMedicineScreen = () => {
           {errors.dosage ? <Text style={styles.errorText}>{errors.dosage}</Text> : null}
         </View>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="İlaç Türü" infoText="İlacınızın formunu seçin (Tablet, Şurup, Krem vb.)." />
+          <LabelWithInfo label={t('medicineTypeLabel')} infoText={t('medicineTypeInfo')} />
           <OptionSelector
             options={medicineTypes}
             selectedValue={type}
@@ -322,7 +357,7 @@ const EditMedicineScreen = () => {
           {errors.type ? <Text style={styles.errorText}>{errors.type}</Text> : null}
         </View>
         <View style={styles.formGroup}>
-          <LabelWithInfo label="Günde Kaç Defa" infoText="İlacınızı 24 saat içinde kaç defa almanız gerektiğini belirtin." />
+          <LabelWithInfo label={t('frequencyLabel')} infoText={t('frequencyInfo')} />
           <OptionSelector
             options={frequencyOptions}
             selectedValue={frequency}
@@ -335,10 +370,10 @@ const EditMedicineScreen = () => {
         </View>
         {doseTimes.length > 0 && (
           <View style={styles.formGroup}>
-            <LabelWithInfo label="Doz Saatleri" infoText="İlacınızı almanız gereken saatleri seçin. Her saat için bir hatırlatma oluşturulur." />
+            <LabelWithInfo label={t('doseTimesLabel')} infoText={t('doseTimesInfo')} />
             {doseTimes.map((time, index) => (
               <View key={index} style={styles.doseTimeRow}>
-                <Text style={styles.doseTimeLabel}>{`${index + 1}. Doz Saati`}</Text>
+                <Text style={styles.doseTimeLabel}>{`${index + 1}. ${t('doseTimeLabel')}`}</Text>
                 <TouchableOpacity onPress={() => handleTimePress(index)} style={styles.timeButton}>
                   <Text style={styles.timeButtonText}>{time}</Text>
                 </TouchableOpacity>
@@ -347,9 +382,9 @@ const EditMedicineScreen = () => {
           </View>
         )}
         <View style={styles.formGroup}>
-            <LabelWithInfo label="Hatırlatıcılar" infoText="Bu seçenek aktifse, doz saatlerinde hatırlatma bildirimi gönderilir." />
+            <LabelWithInfo label={t('remindersLabel')} infoText={t('remindersInfo')} />
             <View style={styles.toggleContainer}>
-                <Text style={styles.toggleLabel}>İlacı kullanıyorum (Bildirimleri Aç)</Text>
+                <Text style={styles.toggleLabel}>{t('useReminders')}</Text>
                 <Switch
                     trackColor={{ false: COLORS.lightGray, true: COLORS.secondary }}
                     thumbColor={notificationsEnabled ? COLORS.primary : COLORS.gray}
@@ -361,7 +396,7 @@ const EditMedicineScreen = () => {
       </ScrollView>
 
       <TouchableOpacity style={styles.saveButton} onPress={handleUpdate}>
-        <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+        <Text style={styles.saveButtonText}>{t('save')}</Text>
       </TouchableOpacity>
 
       <Modal
@@ -372,7 +407,7 @@ const EditMedicineScreen = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Doz Saati Seçin</Text>
+            <Text style={styles.modalTitle}>{t('selectDoseTime')}</Text>
             <DateTimePicker
               testID="dateTimePicker"
               value={pickerDate}
@@ -384,10 +419,10 @@ const EditMedicineScreen = () => {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalButton} onPress={() => setShowPicker(false)}>
-                <Text style={styles.modalButtonText}>İptal</Text>
+                <Text style={styles.modalButtonText}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleConfirmTime}>
-                <Text style={[styles.modalButtonText, styles.confirmButtonText]}>Tamam</Text>
+                <Text style={[styles.modalButtonText, styles.confirmButtonText]}>{t('ok')}</Text>
               </TouchableOpacity>
             </View>
           </View>

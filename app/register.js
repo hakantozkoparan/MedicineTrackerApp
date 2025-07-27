@@ -1,8 +1,10 @@
 import { auth, db } from '@/api/firebase';
 import SimpleCaptcha from '@/components/SimpleCaptcha';
+import { useLocalization } from '@/hooks/useLocalization';
 import SecurityManager from '@/utils/SecurityManager';
 import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Localization from 'expo-localization';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
@@ -16,6 +18,7 @@ import { useRouter } from 'expo-router';
 
 const RegisterScreen = () => {
   const router = useRouter();
+  const { t } = useLocalization();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
@@ -80,24 +83,24 @@ const RegisterScreen = () => {
     // Basic validation
     let isValid = true;
     if (!name) {
-      setNameError('İsim alanı boş bırakılamaz.');
+      setNameError(t('nameRequired'));
       isValid = false;
     }
     if (!surname) {
-      setSurnameError('Soyisim alanı boş bırakılamaz.');
+      setSurnameError(t('surnameRequired'));
       isValid = false;
     }
     if (!email) {
-      setEmailError('E-posta alanı boş bırakılamaz.');
+      setEmailError(t('emailRequired'));
       isValid = false;
     }
     if (!password) {
-      setPasswordError('Şifre alanı boş bırakılamaz.');
+      setPasswordError(t('passwordRequired'));
       isValid = false;
     }
 
     if (!isCaptchaVerified) {
-      Alert.alert('Uyarı', 'Lütfen güvenlik doğrulamasını tamamlayın.');
+      Alert.alert(t('warning'), t('completeSecurityVerification'));
       return;
     }
 
@@ -109,7 +112,7 @@ const RegisterScreen = () => {
       const securityCheck = await securityManager.checkSecurityLimits('register', email);
       
       if (!securityCheck.allowed) {
-        Alert.alert('Güvenlik Uyarısı', securityCheck.reason);
+        Alert.alert(t('warning'), securityCheck.reason);
         return;
       }
     } catch (error) {
@@ -136,6 +139,9 @@ const RegisterScreen = () => {
           osName: Device.osName,
           osVersion: Device.osVersion,
           deviceName: Device.deviceName,
+          locale: Localization.getLocales()[0]?.languageTag || 'en-US',
+          region: Localization.getLocales()[0]?.regionCode || 'US',
+          timezone: Localization.getCalendars()[0]?.timeZone || 'UTC',
         },
         role: 'member',
         emailVerified: false,
@@ -168,11 +174,11 @@ const RegisterScreen = () => {
       }
 
       Alert.alert(
-        'Kayıt Başarılı!', 
-        `${email} adresine doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin ve doğrulama linkine tıklayın. Doğrulama sonrası giriş yapabilirsiniz.`,
+        t('accountCreatedSuccess'),
+        t('emailVerificationSent'),
         [
           {
-            text: 'Tamam',
+            text: t('ok'),
             onPress: () => router.replace('/login')
           }
         ]
@@ -200,31 +206,31 @@ const RegisterScreen = () => {
       // Daha detaylı hata mesajları
       switch (error.code) {
         case 'auth/email-already-in-use':
-          setEmailError('Bu e-posta adresi zaten kullanılıyor.');
-          Alert.alert('E-posta Zaten Kayıtlı', 'Bu e-posta adresi zaten sistemde kayıtlı. Giriş yapmayı deneyin.');
+          setEmailError(t('emailAlreadyInUse'));
+          Alert.alert(t('error'), t('emailAlreadyInUse'));
           break;
         case 'auth/invalid-email':
-          setEmailError('Geçersiz e-posta adresi formatı.');
+          setEmailError(t('invalidEmailFormat'));
           break;
         case 'auth/weak-password':
-          setPasswordError('Şifre en az 6 karakter olmalıdır.');
+          setPasswordError(t('passwordMinLength'));
           break;
         case 'auth/network-request-failed':
-          Alert.alert('Bağlantı Hatası', 'İnternet bağlantınızı kontrol edin ve tekrar deneyin.');
+          Alert.alert(t('error'), t('networkError'));
           break;
         case 'auth/too-many-requests':
-          Alert.alert('Çok Fazla Deneme', 'Çok fazla başarısız deneme yapıldı. Lütfen daha sonra tekrar deneyin.');
+          Alert.alert(t('error'), t('tooManyRequests'));
           break;
         case 'firestore/permission-denied':
-          Alert.alert('İzin Hatası', 'Veritabanına erişim izni reddedildi. Lütfen uygulamayı yeniden başlatın.');
+          Alert.alert(t('error'), t('firestorePermissionDenied'));
           break;
         case 'firestore/unavailable':
-          Alert.alert('Hizmet Kullanılamıyor', 'Veritabanı hizmeti şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+          Alert.alert(t('error'), t('firestoreUnavailable'));
           break;
         default:
           Alert.alert(
-            'Beklenmedik Hata', 
-            `Kayıt işlemi sırasında bir hata oluştu.\n\nHata kodu: ${error.code || 'bilinmiyor'}\nDetay: ${error.message || 'Detay yok'}\n\nLütfen tekrar deneyin.`
+            t('unexpectedError'),
+            t('registrationErrorDetails').replace('{code}', error.code || 'bilinmiyor').replace('{message}', error.message || 'Detay yok')
           );
           console.error('Unhandled registration error:', error);
           break;
@@ -247,12 +253,12 @@ const RegisterScreen = () => {
       >
         <ScrollView contentContainerStyle={styles.innerContainer}>
         <Image source={require('../assets/images/medicinetrackerlogo.png')} style={styles.logo} />
-        <Text style={styles.appName}>İlaç Takip</Text>
-        <Text style={styles.title}>Kayıt Ol</Text>
+        <Text style={styles.appName}>{t('appName')}</Text>
+        <Text style={styles.title}>{t('registerTitle')}</Text>
 
         <TextInput
           style={[styles.input, nameError && styles.inputError]}
-          placeholder="Adınız"
+          placeholder={t('firstName')}
           value={name}
           onChangeText={setName}
           placeholderTextColor={COLORS.gray}
@@ -260,7 +266,7 @@ const RegisterScreen = () => {
         {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
         <TextInput
           style={[styles.input, surnameError && styles.inputError]}
-          placeholder="Soyadınız"
+          placeholder={t('lastName')}
           value={surname}
           onChangeText={setSurname}
           placeholderTextColor={COLORS.gray}
@@ -268,7 +274,7 @@ const RegisterScreen = () => {
         {surnameError ? <Text style={styles.errorText}>{surnameError}</Text> : null}
         <TextInput
           style={[styles.input, emailError && styles.inputError]}
-          placeholder="E-posta Adresiniz"
+          placeholder={t('email')}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -278,7 +284,7 @@ const RegisterScreen = () => {
         {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
         <TextInput
           style={[styles.input, passwordError && styles.inputError]}
-          placeholder="Şifreniz"
+          placeholder={t('password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -299,15 +305,15 @@ const RegisterScreen = () => {
               colors={[COLORS.primary, COLORS.secondary]}
               style={styles.button}
             >
-              <Text style={styles.buttonText}>Kayıt Ol</Text>
+              <Text style={styles.buttonText}>{t('registerButton')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
 
         <View style={styles.switchContainer}>
-          <Text style={styles.switchText}>Zaten hesabın var mı? </Text>
+          <Text style={styles.switchText}>{t('alreadyHaveAccount')} </Text>
           <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.switchLink}>Giriş Yap</Text>
+            <Text style={styles.switchLink}>{t('login')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

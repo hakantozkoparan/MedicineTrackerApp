@@ -1,4 +1,5 @@
 import { auth, db } from '@/api/firebase';
+import BannerAd from '@/components/BannerAd';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 
 interface SupportTicket {
   id: string;
@@ -32,6 +34,7 @@ interface SupportTicket {
 
 const AdminTicketsScreen = () => {
   const router = useRouter();
+  const { t } = useLocalization();
   const [allTickets, setAllTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -121,13 +124,13 @@ const AdminTicketsScreen = () => {
           } else {
             setIsAdmin(false);
             setLoading(false);
-            Alert.alert("Erişim Reddedildi", "Bu sayfaya erişim yetkiniz yok.");
+            Alert.alert(t('accessDenied'), t('accessDeniedMessage'));
             router.replace('/login');
           }
         } else {
           setIsAdmin(false);
           setLoading(false);
-          Alert.alert("Hata", "Kullanıcı bilgileri bulunamadı.");
+          Alert.alert(t('error'), t('userInfoNotFound'));
           router.replace('/login');
         }
       }, (error) => {
@@ -136,7 +139,7 @@ const AdminTicketsScreen = () => {
           return;
         }
         console.error("Error listening to user data:", error);
-        Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
+        Alert.alert(t('error'), t('userInfoError'));
         setLoading(false);
       });
       return () => {
@@ -166,15 +169,15 @@ const AdminTicketsScreen = () => {
         updatedAt: new Date()
       });
     } catch (error) {
-      Alert.alert('Hata', 'Durum güncellenirken bir sorun oluştu.');
+      Alert.alert(t('error'), t('ticketStatusUpdateError'));
     }
   };
 
   const renderTicketItem = ({ item }: { item: SupportTicket }) => {
     // Field adları farklı olduğu için uygun olanı seç
-    const email = item.email || item.userEmail || 'Bilinmiyor';
-    const content = item.message || item.description || 'İçerik bulunamadı';
-    const sourceLabel = item.source === 'login_page' ? '🌐 İletişim Formu' : '👤 Profil Sayfası';
+    const email = item.email || item.userEmail || t('unknownEmail');
+    const content = item.message || item.description || t('contentNotFound');
+    const sourceLabel = item.source === 'login_page' ? t('contactForm') : t('profilePage');
     
     const isOpen = item.status === 'open' || item.status === 'pending';
     
@@ -187,8 +190,8 @@ const AdminTicketsScreen = () => {
         <Text style={styles.cardDescription}>{content}</Text>
         <View style={styles.cardInfoContainer}>
           <Text style={styles.cardInfo}>📧 {email}</Text>
-          <Text style={styles.cardInfo}>📊 Durum: {item.status}</Text>
-          {item.priority && <Text style={styles.cardInfo}>⚡ Öncelik: {item.priority}</Text>}
+          <Text style={styles.cardInfo}>📊 {t('statusLabel')}: {item.status}</Text>
+          {item.priority && <Text style={styles.cardInfo}>⚡ {t('priorityLabel')}: {item.priority}</Text>}
           <Text style={styles.cardInfo}>📅 {formatDate(item.createdAt)}</Text>
         </View>
         
@@ -199,14 +202,14 @@ const AdminTicketsScreen = () => {
               style={[styles.actionButton, styles.closeButton]}
               onPress={() => updateTicketStatus(item.id, 'closed', item.source)}
             >
-              <Text style={styles.actionButtonText}>Kapat</Text>
+              <Text style={styles.actionButtonText}>{t('closeTicket')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
               style={[styles.actionButton, styles.openButton]}
               onPress={() => updateTicketStatus(item.id, 'open', item.source)}
             >
-              <Text style={styles.actionButtonText}>Yeniden Aç</Text>
+              <Text style={styles.actionButtonText}>{t('reopenTicket')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -215,12 +218,12 @@ const AdminTicketsScreen = () => {
   };
 
   const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Tarih bilinmiyor';
+    if (!timestamp) return t('unknownDate');
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       return date.toLocaleString('tr-TR');
     } catch (error) {
-      return 'Geçersiz tarih';
+      return t('invalidDate');
     }
   };
 
@@ -235,9 +238,9 @@ const AdminTicketsScreen = () => {
   if (!isAdmin) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.accessDeniedText}>Bu sayfaya erişim yetkiniz yok.</Text>
+        <Text style={styles.accessDeniedText}>{t('accessDeniedMessage')}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButtonAccessDenied}>
-          <Text style={styles.backButtonText}>Geri Dön</Text>
+          <Text style={styles.backButtonText}>{t('goBack')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -249,7 +252,7 @@ const AdminTicketsScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
         </TouchableOpacity>
-        <Text style={styles.title}>Destek Talepleri</Text>
+        <Text style={styles.title}>{t('supportTicketsTitle')}</Text>
         <View style={{ width: 28 }} />
       </View>
       
@@ -260,7 +263,7 @@ const AdminTicketsScreen = () => {
           onPress={() => setActiveTab('open')}
         >
           <Text style={[styles.tabText, activeTab === 'open' && styles.activeTabText]}>
-            Açık Talepler ({allTickets.filter(t => t.status === 'open' || t.status === 'pending').length})
+            {t('openRequests')} ({allTickets.filter(t => t.status === 'open' || t.status === 'pending').length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
@@ -268,7 +271,7 @@ const AdminTicketsScreen = () => {
           onPress={() => setActiveTab('closed')}
         >
           <Text style={[styles.tabText, activeTab === 'closed' && styles.activeTabText]}>
-            Kapalı Talepler ({allTickets.filter(t => t.status === 'closed' || t.status === 'resolved').length})
+            {t('closedRequests')} ({allTickets.filter(t => t.status === 'closed' || t.status === 'resolved').length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -281,11 +284,14 @@ const AdminTicketsScreen = () => {
         ListEmptyComponent={() => (
           <View style={styles.centered}>
             <Text style={styles.emptyText}>
-              {activeTab === 'open' ? 'Açık talep bulunmuyor.' : 'Kapalı talep bulunmuyor.'}
+              {activeTab === 'open' ? t('noOpenTickets') : t('noClosedTickets')}
             </Text>
           </View>
         )}
       />
+
+      {/* Banner Ad */}
+      <BannerAd style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
     </SafeAreaView>
   );
 };

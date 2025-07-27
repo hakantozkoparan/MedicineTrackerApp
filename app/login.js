@@ -1,6 +1,7 @@
 import { auth, db } from '@/api/firebase';
 import SimpleCaptcha from '@/components/SimpleCaptcha';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { useLocalization } from '@/hooks/useLocalization';
 import SecurityManager from '@/utils/SecurityManager';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -16,6 +17,7 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform,
 
 const LoginScreen = () => {
   const router = useRouter();
+  const { t, currentLanguage, changeLanguage, getSupportedLanguages } = useLocalization();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -24,6 +26,10 @@ const LoginScreen = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
+  
+  // Language selection states
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const supportedLanguages = getSupportedLanguages();
   
   // Support modal states
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -99,30 +105,31 @@ const LoginScreen = () => {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      setEmailError('Şifre sıfırlama için e-posta adresinizi girin.');
+      setEmailError(t('passwordResetEmailRequired'));
       return;
     }
 
     try {
       await sendPasswordResetEmail(auth, email);
       Alert.alert(
-        'Şifre Sıfırlama E-postası Gönderildi',
-        `${email} adresine şifre sıfırlama talimatları gönderildi. Lütfen e-postanızı kontrol edin.`
+        t('passwordResetEmailSent'),
+        `${email} ${t('passwordResetEmailSentMessage')}`
       );
     } catch (error) {
-      let errorMessage = 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu.';
+      let errorMessage = t('passwordResetError');
       
       switch (error.code) {
         case 'auth/user-not-found':
-          errorMessage = 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.';
+          errorMessage = t('userNotFound');
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Geçersiz e-posta adresi.';
+          errorMessage = t('invalidEmail');
           break;
       }
       
-      Alert.alert('Hata', errorMessage);
-    }  };
+      Alert.alert(t('error'), errorMessage);
+    }
+  };
 
   // Support form validation
   const validateSupportForm = () => {
@@ -131,10 +138,10 @@ const LoginScreen = () => {
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!supportEmail.trim()) {
-      setSupportEmailError('Email adresi gereklidir');
+      setSupportEmailError(t('emailIsRequired'));
       isValid = false;
     } else if (!emailRegex.test(supportEmail)) {
-      setSupportEmailError('Geçerli bir email adresi girin');
+      setSupportEmailError(t('enterValidEmail'));
       isValid = false;
     } else {
       setSupportEmailError('');
@@ -142,10 +149,10 @@ const LoginScreen = () => {
     
     // Subject validation
     if (!supportSubject.trim()) {
-      setSupportSubjectError('Konu başlığı gereklidir');
+      setSupportSubjectError(t('subjectRequired'));
       isValid = false;
     } else if (supportSubject.trim().length < 5) {
-      setSupportSubjectError('Konu başlığı en az 5 karakter olmalıdır');
+      setSupportSubjectError(t('subjectMinLength'));
       isValid = false;
     } else {
       setSupportSubjectError('');
@@ -153,10 +160,10 @@ const LoginScreen = () => {
     
     // Message validation
     if (!supportMessage.trim()) {
-      setSupportMessageError('Mesaj içeriği gereklidir');
+      setSupportMessageError(t('messageRequired'));
       isValid = false;
     } else if (supportMessage.trim().length < 10) {
-      setSupportMessageError('Mesaj en az 10 karakter olmalıdır');
+      setSupportMessageError(t('messageMinLength'));
       isValid = false;
     } else {
       setSupportMessageError('');
@@ -172,7 +179,7 @@ const LoginScreen = () => {
     }
     
     if (!isSupportCaptchaVerified) {
-      Alert.alert('Hata', 'Lütfen captcha doğrulamasını tamamlayın.');
+      Alert.alert(t('error'), t('completeCaptcha'));
       return;
     }
     
@@ -204,11 +211,11 @@ const LoginScreen = () => {
       
       if (success) {
         Alert.alert(
-          'Başarılı!', 
-          'Destek talebiniz başarıyla gönderildi. En kısa sürede size geri dönüş yapacağız.',
+          t('success'), 
+          t('supportTicketSentMessage'),
           [
             {
-              text: 'Tamam',
+              text: t('ok'),
               onPress: () => {
                 // Modal'ı kapat ve formu temizle
                 setShowSupportModal(false);
@@ -222,13 +229,24 @@ const LoginScreen = () => {
           ]
         );
       } else {
-        Alert.alert('Hata', 'Destek talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+        Alert.alert(t('error'), t('supportTicketError'));
       }
       
     } catch (error) {
-      Alert.alert('Hata', 'Destek talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      Alert.alert(t('error'), t('supportTicketError'));
     } finally {
       setIsSubmittingSupport(false);
+    }
+  };
+
+  // Handle language change
+  const handleLanguageChange = async (languageCode) => {
+    try {
+      await changeLanguage(languageCode);
+      setShowLanguageModal(false);
+    } catch (error) {
+      console.error('Language change error:', error);
+      Alert.alert(t('error'), t('languageChangeError'));
     }
   };
 
@@ -238,13 +256,13 @@ const LoginScreen = () => {
     setFormError('');
 
     if (!email || !password) {
-      if (!email) setEmailError('E-posta alanı boş bırakılamaz.');
-      if (!password) setPasswordError('Şifre alanı boş bırakılamaz.');
+      if (!email) setEmailError(t('emailRequired'));
+      if (!password) setPasswordError(t('passwordRequired'));
       return;
     }
 
     if (!isCaptchaVerified) {
-      setFormError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      setFormError(t('completeSecurityVerification'));
       return;
     }
 
@@ -267,7 +285,7 @@ const LoginScreen = () => {
         
         // Auth ve db null kontrolü
         if (!auth || !db) {
-          Alert.alert('Hata', 'Firebase bağlantısı kurulamadı.');
+          Alert.alert(t('error'), t('firebaseConnectionError'));
           return;
         }
         
@@ -416,14 +434,26 @@ const LoginScreen = () => {
         style={StyleSheet.absoluteFillObject}
       />
       
-      {/* İletişim butonu - sağ üst köşe */}
+      {/* Top right buttons - language and contact */}
       <View style={styles.topRightContainer}>
+        {/* Language selector */}
+        <TouchableOpacity 
+          onPress={() => setShowLanguageModal(true)}
+          style={styles.languageButton}
+        >
+          <Text style={styles.languageFlag}>
+            {supportedLanguages.find(lang => lang.code === currentLanguage)?.flag || '🌐'}
+          </Text>
+          <Text style={styles.languageCode}>{currentLanguage.toUpperCase()}</Text>
+        </TouchableOpacity>
+        
+        {/* Contact button */}
         <TouchableOpacity 
           onPress={() => setShowSupportModal(true)}
           style={styles.contactLink}
         >
           <Ionicons name="chatbubble-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.contactLinkText}>İletişim</Text>
+          <Text style={styles.contactLinkText}>{t('contact')}</Text>
         </TouchableOpacity>
       </View>
       
@@ -433,11 +463,11 @@ const LoginScreen = () => {
       >
         <View style={styles.innerContainer}>
         <Image source={require('../assets/images/medicinetrackerlogo.png')} style={styles.logo} />
-        <Text style={styles.appName}>İlaç Takip</Text>
-        <Text style={styles.title}>Giriş Yap</Text>
+        <Text style={styles.appName}>{t('appName')}</Text>
+        <Text style={styles.title}>{t('loginTitle')}</Text>
         <TextInput
           style={[styles.input, emailError && styles.inputError]}
-          placeholder="E-posta Adresiniz"
+          placeholder={t('emailPlaceholder')}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -447,7 +477,7 @@ const LoginScreen = () => {
         {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
         <TextInput
           style={[styles.input, passwordError && styles.inputError]}
-          placeholder="Şifreniz"
+          placeholder={t('passwordPlaceholder')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -467,22 +497,68 @@ const LoginScreen = () => {
             colors={[COLORS.primary, COLORS.secondary]}
             style={styles.button}
           >
-            <Text style={styles.buttonText}>Giriş Yap</Text>
+            <Text style={styles.buttonText}>{t('loginButton')}</Text>
           </LinearGradient>
         </TouchableOpacity>
         
         <TouchableOpacity onPress={handleForgotPassword} style={{marginTop: SIZES.medium}}>
-          <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+          <Text style={styles.forgotPasswordText}>{t('forgotPassword')}</Text>
         </TouchableOpacity>
         
         <View style={styles.switchContainer}>
-          <Text style={styles.switchText}>Hesabın yok mu? </Text>
+          <Text style={styles.switchText}>{t('dontHaveAccount')} </Text>
           <TouchableOpacity onPress={() => router.push('/register')}>
-            <Text style={styles.switchLink}>Kayıt Ol</Text>
+            <Text style={styles.switchLink}>{t('register')}</Text>
           </TouchableOpacity>
         </View>
       </View>
       </KeyboardAvoidingView>
+      
+      {/* Language Selection Modal */}
+      <Modal
+        visible={showLanguageModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View style={styles.languageModalOverlay}>
+          <View style={styles.languageModalContent}>
+            <View style={styles.languageModalHeader}>
+              <Text style={styles.languageModalTitle}>{t('selectLanguage')}</Text>
+              <TouchableOpacity 
+                onPress={() => setShowLanguageModal(false)}
+                style={styles.languageModalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={COLORS.darkGray} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.languageList}>
+              {supportedLanguages.map((language) => (
+                <TouchableOpacity
+                  key={language.code}
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === language.code && styles.languageOptionSelected
+                  ]}
+                  onPress={() => handleLanguageChange(language.code)}
+                >
+                  <Text style={styles.languageFlag}>{language.flag}</Text>
+                  <Text style={[
+                    styles.languageOptionText,
+                    currentLanguage === language.code && styles.languageOptionTextSelected
+                  ]}>
+                    {language.name}
+                  </Text>
+                  {currentLanguage === language.code && (
+                    <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       
       {/* Support Modal */}
       <Modal
@@ -499,21 +575,20 @@ const LoginScreen = () => {
             >
               <Text style={styles.modalCloseText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>İletişim</Text>
+            <Text style={styles.modalTitle}>{t('contact')}</Text>
             <View style={styles.modalHeaderSpacer} />
           </View>
           
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.modalDescription}>
-              Bir sorun mu yaşıyorsunuz? Size yardımcı olmak için buradayız. 
-              Lütfen aşağıdaki formu doldurun, en kısa sürede size geri dönüş yapalım.
+              {t('supportDescription')}
             </Text>
             
             <View style={styles.modalInputContainer}>
-              <Text style={styles.modalLabel}>Email Adresiniz *</Text>
+              <Text style={styles.modalLabel}>{t('yourEmail')} {t('required')}</Text>
               <TextInput
                 style={[styles.modalInput, supportEmailError ? styles.modalInputError : null]}
-                placeholder="ornek@email.com"
+                placeholder={t('exampleEmail')}
                 placeholderTextColor={COLORS.gray}
                 value={supportEmail}
                 onChangeText={setSupportEmail}
@@ -527,10 +602,10 @@ const LoginScreen = () => {
             </View>
             
             <View style={styles.modalInputContainer}>
-              <Text style={styles.modalLabel}>Konu Başlığı *</Text>
+              <Text style={styles.modalLabel}>{t('subjectTitle')} {t('required')}</Text>
               <TextInput
                 style={[styles.modalInput, supportSubjectError ? styles.modalInputError : null]}
-                placeholder="Sorunun kısa açıklaması"
+                placeholder={t('shortProblemDescription')}
                 placeholderTextColor={COLORS.gray}
                 value={supportSubject}
                 onChangeText={setSupportSubject}
@@ -542,10 +617,10 @@ const LoginScreen = () => {
             </View>
             
             <View style={styles.modalInputContainer}>
-              <Text style={styles.modalLabel}>Mesajınız *</Text>
+              <Text style={styles.modalLabel}>{t('messageTitle')} {t('required')}</Text>
               <TextInput
                 style={[styles.modalTextArea, supportMessageError ? styles.modalInputError : null]}
-                placeholder="Sorunuzu detaylı bir şekilde açıklayın..."
+                placeholder={t('detailedProblemDescription')}
                 placeholderTextColor={COLORS.gray}
                 value={supportMessage}
                 onChangeText={setSupportMessage}
@@ -578,7 +653,7 @@ const LoginScreen = () => {
                 <ActivityIndicator size="small" color={COLORS.white} />
               ) : (
                 <Text style={styles.modalSubmitButtonText}>
-                  Destek Talebi Gönder
+                  {t('sendMessage')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -695,6 +770,33 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     right: SIZES.large,
     zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.base,
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingVertical: SIZES.base / 2,
+    paddingHorizontal: SIZES.base,
+    borderRadius: SIZES.base,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  languageFlag: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  languageCode: {
+    fontSize: SIZES.small,
+    color: COLORS.primary,
+    fontFamily: FONTS.semiBold,
   },
   contactLink: {
     flexDirection: 'row',
@@ -813,7 +915,68 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: SIZES.large,
     fontFamily: FONTS.semiBold,
-  }
+  },
+  
+  // Language Modal styles
+  languageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  languageModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.medium,
+    width: '80%',
+    maxHeight: '70%',
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  languageModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIZES.large,
+    paddingVertical: SIZES.medium,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  languageModalTitle: {
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+  },
+  languageModalCloseButton: {
+    padding: SIZES.base / 2,
+  },
+  languageList: {
+    maxHeight: 300,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.large,
+    paddingVertical: SIZES.medium,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  languageOptionSelected: {
+    backgroundColor: COLORS.lightGreen,
+  },
+  languageOptionText: {
+    flex: 1,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    color: COLORS.darkGray,
+    marginLeft: SIZES.base,
+  },
+  languageOptionTextSelected: {
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+  },
 });
 
 export default LoginScreen;
