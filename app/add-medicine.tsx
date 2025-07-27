@@ -1,3 +1,4 @@
+// @ts-ignore
 import { auth, db } from '@/api/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -7,16 +8,16 @@ import { StatusBar } from 'expo-status-bar';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import OptionSelector, { Option } from '@/components/OptionSelector';
@@ -27,21 +28,30 @@ import usePremiumLimit from '@/hooks/usePremiumLimit';
 const scheduleReminder = async (medicineName: string, doseTime: string): Promise<string | null> => {
   try {
     const [hour, minute] = doseTime.split(':').map(Number);
+    console.log(`📅 Lokal bildirim planlanıyor (calendar trigger): ${medicineName} - ${doseTime} (${hour}:${minute})`);
+    // Her gün cihazın yerel saatinde tekrarlayan bildirim
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'İlaç Hatırlatma',
-        body: `${medicineName} ilacınızı alma zamanı!`,
+        title: '💊 İlaç Hatırlatma',
+        body: `${medicineName} ilacınızı alma zamanı geldi!`,
         sound: 'default',
+        badge: 1,
+        data: {
+          medicineName,
+          doseTime,
+          type: 'medicine_reminder'
+        }
       },
-      trigger: { 
-        hour: Number(hour), 
-        minute: Number(minute),
+      trigger: {
+        hour,
+        minute,
         repeats: true
-      } as any,
+      } as any // Type hatası olursa bypass
     });
+    console.log(`✅ Lokal bildirim ayarlandı - ID: ${identifier}, Saat: ${hour}:${minute}`);
     return identifier;
   } catch (error) {
-    console.error(`Bildirim ayarlanırken hata oluştu (${doseTime}):`, error);
+    console.error(`❌ Lokal bildirim ayarlanırken hata oluştu (${doseTime}):`, error);
     return null;
   }
 };
@@ -74,11 +84,51 @@ const AddMedicineScreen = () => {
 
   useEffect(() => {
     const requestPermissions = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') {
-        await Notifications.requestPermissionsAsync();
+      try {
+        // İlk olarak mevcut izinleri kontrol et
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        console.log('📋 Mevcut bildirim izni durumu:', existingStatus);
+        
+        let finalStatus = existingStatus;
+        
+        // İzin yoksa talep et
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync({
+            ios: {
+              allowAlert: true,
+              allowBadge: true,
+              allowSound: true,
+              allowDisplayInCarPlay: true,
+              allowCriticalAlerts: false,
+              provideAppNotificationSettings: true,
+              allowProvisional: false,
+            },
+          });
+          finalStatus = status;
+          console.log('📋 Yeni bildirim izni durumu:', finalStatus);
+        }
+        
+        if (finalStatus !== 'granted') {
+          console.warn('⚠️ Bildirim izni reddedildi');
+        } else {
+          console.log('✅ Bildirim izni verildi');
+          
+          // Bildirim ayarları
+          await Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+              shouldShowAlert: true,
+              shouldPlaySound: true,
+              shouldSetBadge: true,
+              shouldShowBanner: true,
+              shouldShowList: true,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('❌ Bildirim izni talep edilirken hata:', error);
       }
     };
+    
     requestPermissions();
   }, []);
 
@@ -164,12 +214,14 @@ const AddMedicineScreen = () => {
       }
     }
 
+    // @ts-ignore
     const user = auth.currentUser;
     if (!user) {
       router.replace('/login');
       return;
     }
     try {
+      // db is imported from firebase.js and typed
       const notificationIds: string[] = [];
       if (notificationsEnabled) {
         for (const doseTime of doseTimes) {
@@ -180,6 +232,7 @@ const AddMedicineScreen = () => {
         }
       }
 
+      // @ts-ignore
       await addDoc(collection(db, 'users', user.uid, 'medicines'), {
         name,
         dosage,

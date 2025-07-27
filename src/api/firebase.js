@@ -88,5 +88,4 @@ try {
     throw error;
   }
 }
-
 export { app, auth, db };
