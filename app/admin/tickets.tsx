@@ -46,6 +46,12 @@ const AdminTicketsScreen = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      if (!auth || !db) {
+        setIsAdmin(false);
+        setLoading(false);
+        router.replace('/login');
+        return;
+      }
       const user = auth.currentUser;
       if (!user) {
         setIsAdmin(false);
@@ -53,80 +59,65 @@ const AdminTicketsScreen = () => {
         router.replace('/login');
         return;
       }
-
       let unsubscribeSupportTickets: (() => void) | null = null;
       let unsubscribeLoginTickets: (() => void) | null = null;
-
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data();
           if (userData.role === 'admin') {
             setIsAdmin(true);
-            
-            // Birleştirme fonksiyonu
             let supportTicketsData: SupportTicket[] = [];
             let loginTicketsData: SupportTicket[] = [];
-            
             const updateCombinedTickets = (newTickets: SupportTicket[], source: string) => {
               if (source === 'supportTickets') {
                 supportTicketsData = newTickets;
               } else {
                 loginTicketsData = newTickets;
               }
-              
-              // İki koleksiyonu birleştir ve tarihe göre sırala
               const combined = [...supportTicketsData, ...loginTicketsData];
               combined.sort((a, b) => {
                 const aDate = a.createdAt?.toDate?.() || a.createdAt;
                 const bDate = b.createdAt?.toDate?.() || b.createdAt;
                 return bDate - aDate;
               });
-              
               setAllTickets(combined);
               setLoading(false);
             };
-            
-            // supportTickets koleksiyonu (giriş yapan kullanıcılar)
-            const supportTicketsRef = collection(db, 'supportTickets');
-            const q1 = query(supportTicketsRef, orderBy('createdAt', 'desc'));
-            unsubscribeSupportTickets = onSnapshot(q1, (querySnapshot) => {
-              const supportTickets = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                source: 'authenticated_user', // Nereden geldiğini belirt
-                ...doc.data(),
-              })) as SupportTicket[];
-              
-              // İki koleksiyonu birleştir
-              updateCombinedTickets(supportTickets, 'supportTickets');
-            }, (error) => {
-              if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-                console.log('Kullanıcı çıkış yapmış, supportTickets listener kapatılıyor.');
-                return;
-              }
-              console.error("Error fetching supportTickets:", error);
-            });
-            
-            // support_tickets koleksiyonu (login sayfasından)
-            const loginTicketsRef = collection(db, 'support_tickets');
-            const q2 = query(loginTicketsRef, orderBy('createdAt', 'desc'));
-            unsubscribeLoginTickets = onSnapshot(q2, (querySnapshot) => {
-              const loginTickets = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                source: 'login_page', // Nereden geldiğini belirt
-                ...doc.data(),
-              })) as SupportTicket[];
-              
-              // İki koleksiyonu birleştir
-              updateCombinedTickets(loginTickets, 'support_tickets');
-            }, (error) => {
-              if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-                console.log('Kullanıcı çıkış yapmış, support_tickets listener kapatılıyor.');
-                return;
-              }
-              console.error("Error fetching support_tickets:", error);
-            });
-            
+            const supportTicketsRef = db ? collection(db, 'supportTickets') : undefined;
+            if (supportTicketsRef) {
+              const q1 = query(supportTicketsRef, orderBy('createdAt', 'desc'));
+              unsubscribeSupportTickets = onSnapshot(q1, (querySnapshot) => {
+                const supportTickets = querySnapshot.docs.map(doc => ({
+                  id: doc.id,
+                  source: 'authenticated_user',
+                  ...doc.data(),
+                })) as SupportTicket[];
+                updateCombinedTickets(supportTickets, 'supportTickets');
+              }, (error) => {
+                if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+                  return;
+                }
+                console.error("Error fetching supportTickets:", error);
+              });
+            }
+            const loginTicketsRef = db ? collection(db, 'support_tickets') : undefined;
+            if (loginTicketsRef) {
+              const q2 = query(loginTicketsRef, orderBy('createdAt', 'desc'));
+              unsubscribeLoginTickets = onSnapshot(q2, (querySnapshot) => {
+                const loginTickets = querySnapshot.docs.map(doc => ({
+                  id: doc.id,
+                  source: 'login_page',
+                  ...doc.data(),
+                })) as SupportTicket[];
+                updateCombinedTickets(loginTickets, 'support_tickets');
+              }, (error) => {
+                if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+                  return;
+                }
+                console.error("Error fetching support_tickets:", error);
+              });
+            }
           } else {
             setIsAdmin(false);
             setLoading(false);
@@ -140,9 +131,7 @@ const AdminTicketsScreen = () => {
           router.replace('/login');
         }
       }, (error) => {
-        // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
         if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-          console.log('Kullanıcı çıkış yapmış, user listener kapatılıyor.');
           setLoading(false);
           return;
         }
@@ -150,7 +139,6 @@ const AdminTicketsScreen = () => {
         Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
         setLoading(false);
       });
-
       return () => {
         try {
           unsubscribeUser();
@@ -161,16 +149,16 @@ const AdminTicketsScreen = () => {
             unsubscribeLoginTickets();
           }
         } catch (error) {
-          console.log("Listeners already unsubscribed");
+          // ...existing code...
         }
       };
     };
-
     checkAdminStatus();
   }, [router]);
 
   const updateTicketStatus = async (ticketId: string, newStatus: string, source: string) => {
     try {
+      if (!db) throw new Error('Firestore bağlantısı yok.');
       const collectionName = source === 'login_page' ? 'support_tickets' : 'supportTickets';
       const ticketRef = doc(db, collectionName, ticketId);
       await updateDoc(ticketRef, {
@@ -178,7 +166,6 @@ const AdminTicketsScreen = () => {
         updatedAt: new Date()
       });
     } catch (error) {
-      console.error('Error updating ticket status:', error);
       Alert.alert('Hata', 'Durum güncellenirken bir sorun oluştu.');
     }
   };

@@ -71,16 +71,13 @@ const LoginScreen = () => {
   // Push notification token güncelleme fonksiyonu
   const updatePushNotificationToken = async (userId) => {
     try {
-      console.log('🔔 Push notification token güncelleniyor...');
       
       if (!Device.isDevice) {
-        console.log('📱 Simülatör ortamı, push token güncelleme atlanıyor');
         return;
       }
 
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') {
-        console.log('🚫 Push notification izni yok, token güncelleme atlanıyor');
         return;
       }
 
@@ -94,10 +91,8 @@ const LoginScreen = () => {
           pushToken: tokenData.data,
           pushTokenUpdatedAt: new Date()
         });
-        console.log('✅ Push token başarıyla güncellendi:', tokenData.data);
       }
     } catch (error) {
-      console.error('❌ Push token güncelleme hatası:', error);
       // Hata olsa bile login işlemini durdurma
     }
   };
@@ -231,7 +226,6 @@ const LoginScreen = () => {
       }
       
     } catch (error) {
-      console.error('Destek talebi gönderme hatası:', error);
       Alert.alert('Hata', 'Destek talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsSubmittingSupport(false);
@@ -260,17 +254,22 @@ const LoginScreen = () => {
       const securityCheck = await securityManager.checkSecurityLimits('login', email);
       
       if (!securityCheck.allowed) {
-        console.log('⚠️ Güvenlik kontrolü başarısız ama devam ediliyor:', securityCheck.reason);
         // setFormError(securityCheck.reason);
         // return;
       }
     } catch (error) {
-      console.error('Güvenlik kontrolü hatası:', error);
+      // Güvenlik kontrolü hatası - sessizce devam et
     }
 
     signInWithEmailAndPassword(auth, email, password)
       .then(async (userCredential) => {
         const user = userCredential.user;
+        
+        // Auth ve db null kontrolü
+        if (!auth || !db) {
+          Alert.alert('Hata', 'Firebase bağlantısı kurulamadı.');
+          return;
+        }
         
         // Kullanıcının en güncel durumunu al
         await user.reload();
@@ -282,33 +281,30 @@ const LoginScreen = () => {
         try {
           userDoc = await getDoc(userDocRef);
         } catch (firestoreError) {
-          console.log('Firestore okuma hatası, sadece Firebase Auth kullanılacak:', firestoreError);
           userDoc = null;
         }
         
         let isEmailVerified = refreshedUser.emailVerified;
         let isManuallyVerified = false;
         
-        // Firestore'da manuel doğrulama kontrolü
+        // Firestore'dan kullanıcı verilerini kontrol et
+        let userData = null;
         if (userDoc && userDoc.exists()) {
-          const userData = userDoc.data();
-          // Manuel doğrulanmış kullanıcıları kontrol et - admin tarafından onaylanmış ve emailVerified true olmalı
-          isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
-          isEmailVerified = refreshedUser.emailVerified || isManuallyVerified;
+          userData = userDoc.data();
           
-          console.log('🔍 Login verification check:', {
-            firebaseEmailVerified: refreshedUser.emailVerified,
-            firestoreEmailVerified: userData.emailVerified,
-            manuallyVerified: isManuallyVerified,
-            emailVerifiedBy: userData.emailVerifiedBy,
-            emailVerifiedAt: userData.emailVerifiedAt,
-            finalEmailVerified: isEmailVerified,
-            userEmail: refreshedUser.email
-          });
+          // Manuel doğrulama kontrolü - admin tarafından doğrulanmış mı?
+          isManuallyVerified = userData?.emailVerifiedBy === 'admin' && !!(userData?.emailVerifiedAt);
+          
+          // HERHANGI BİRİ TRUE İSE KULLANICI DOĞRULANMIŞTır:
+          // 1. Firebase Auth emailVerified
+          // 2. Admin tarafından manuel doğrulama
+          // 3. Firestore'da emailVerified true
+          isEmailVerified = refreshedUser.emailVerified || isManuallyVerified || userData?.emailVerified === true;
         }
         
         // Email doğrulaması kontrolü (Firebase Auth veya manuel)
         if (!isEmailVerified) {
+          
           // Email doğrulanmamış kullanıcıyı çıkış yap
           await signOut(auth);
           
@@ -330,7 +326,6 @@ const LoginScreen = () => {
                     );
                   } catch (error) {
                     Alert.alert('Hata', 'E-posta gönderilirken bir hata oluştu.');
-                    console.error(error);
                   }
                 }
               },
@@ -360,32 +355,26 @@ const LoginScreen = () => {
           
           // Push notification token'ı güncelle (background'da)
           updatePushNotificationToken(refreshedUser.uid).catch(error => {
-            console.log('Push token güncelleme arka planda başarısız:', error);
+            // Push token güncelleme arka planda başarısız
           });
-          
-          console.log(isManuallyVerified ? 
-            '✅ Kullanıcı girişi başarılı (Manuel doğrulanmış email)' : 
-            '✅ Kullanıcı girişi başarılı ve Firestore güncellendi'
-          );
         } catch (firestoreError) {
           // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
           if (firestoreError.code === 'permission-denied' || firestoreError.code === 'unauthenticated') {
-            console.log('Login Firestore güncelleme izni yok, devam ediliyor.');
+            // Login Firestore güncelleme izni yok, devam ediliyor.
           } else {
-            console.log('Firestore güncelleme hatası:', firestoreError);
+            // Firestore güncelleme hatası
           }
           // Firestore hatası giriş işlemini durdurmaz
         }
         
         // Basit ve güvenilir navigation
-        console.log('🚀 Login completed, navigating to main app');
         
         // Başarılı giriş kaydı
         try {
           const securityManager = SecurityManager.getInstance();
           await securityManager.recordAttempt('login', true, email);
         } catch (error) {
-          console.error('Başarılı giriş kaydı hatası:', error);
+          // Başarılı giriş kaydı hatası - sessizce devam et
         }
         
         // Sadece ana tabs sayfasına yönlendir
@@ -401,7 +390,7 @@ const LoginScreen = () => {
           const securityManager = SecurityManager.getInstance();
           await securityManager.recordAttempt('login', false, email);
         } catch (securityError) {
-          console.error('Başarısız giriş kaydı hatası:', securityError);
+          // Başarısız giriş kaydı hatası - sessizce devam et
         }
         
         switch (error.code) {
@@ -415,7 +404,6 @@ const LoginScreen = () => {
             break;
           default:
             setFormError('Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.');
-            console.error(error);
         }
       });
   };

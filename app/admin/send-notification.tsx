@@ -4,15 +4,15 @@ import { getAuth } from 'firebase/auth';
 import { collection, getDocs, getFirestore, query } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -105,7 +105,7 @@ const SendNotificationScreen = () => {
 
         // Success response'u da logla
         const responseData = await response.json();
-        console.log('Push notification success:', responseData);
+        // ...existing code...
       }
 
       Alert.alert('Başarılı', `${pushTokens.length} kullanıcıya bildirim başarıyla gönderildi.`);

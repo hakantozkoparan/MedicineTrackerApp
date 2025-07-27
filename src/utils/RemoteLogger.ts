@@ -48,9 +48,7 @@ class RemoteLogger {
         await addDoc(collection(db, 'app_logs'), cleanLog);
       }
       
-      console.log(`📤 ${logsToUpload.length} log remote'a gönderildi`);
     } catch (error) {
-      console.error('❌ Remote log gönderme hatası:', error);
       // Başarısız logları geri koy
       this.logQueue.unshift(...this.logQueue);
     } finally {
@@ -69,7 +67,6 @@ class RemoteLogger {
     };
 
     // Local console'a da yazdır
-    console.log(`[${level.toUpperCase()}] ${message}`, data || '');
     
     // Queue'ya ekle
     this.logQueue.push(logEntry);

@@ -159,5 +159,3 @@ export const PRODUCTION_CHECKLIST = [
   '✅ Analytics ve revenue tracking aktif edildi'
 ];
 
-console.log('RevenueCat Premium Test Rehberi yüklendi!');
-console.log('Detaylar için TESTING_TIPS, TEST_SCENARIOS ve COMMON_ISSUES objelerini kontrol edin.');

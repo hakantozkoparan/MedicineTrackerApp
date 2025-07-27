@@ -24,26 +24,18 @@ export default function TabLayout() {
         try {
           const { doc, getDoc } = await import('firebase/firestore');
           const { db } = await import('@/api/firebase');
-          
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            // Manuel doğrulanmış kullanıcıları kontrol et
-            const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
-            isEmailVerified = user.emailVerified || isManuallyVerified;
-            
-            console.log('📱 Tabs layout verification check:', {
-              firebaseEmailVerified: user.emailVerified,
-              firestoreEmailVerified: userData.emailVerified,
-              manuallyVerified: isManuallyVerified,
-              finalEmailVerified: isEmailVerified,
-              userEmail: user.email
-            });
+          if (db) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              // Manuel doğrulanmış kullanıcıları kontrol et
+              const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
+              isEmailVerified = user.emailVerified || isManuallyVerified;
+            }
           }
         } catch (firestoreError) {
-          console.log('Tabs layout Firestore okuma hatası, Firebase Auth kullanılacak:', firestoreError);
+          // ...existing code...
           // Firestore okuma hatası, sadece Firebase Auth durumunu kullan
           isEmailVerified = user.emailVerified;
         }
@@ -52,13 +44,12 @@ export default function TabLayout() {
           setIsAuthenticated(true);
         } else {
           // Email doğrulanmamış, login'e yönlendir
-          console.log('📱 Tabs: Email not verified, redirecting to login');
+          // ...existing code...
           setIsAuthenticated(false);
           router.replace('/login');
         }
       } else {
         // Kullanıcı yok, login'e yönlendir
-        console.log('📱 Tabs: No user, redirecting to login');
         setIsAuthenticated(false);
         router.replace('/login');
       }

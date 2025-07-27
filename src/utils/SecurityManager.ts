@@ -331,7 +331,6 @@ class SecurityManager {
       };
 
       await setDoc(securityDocRef, securityData);
-      console.log('✅ Test verileri oluşturuldu');
     } catch (error) {
       console.error('❌ Test verileri oluşturulamadı:', error);
     }
@@ -351,10 +350,8 @@ class SecurityManager {
           totalAttempts: 0, // Toplam deneme sayısını sıfırla
           updatedAt: Timestamp.fromDate(new Date())
         });
-        console.log('✅ Cihaz engeli kaldırıldı ve kayıtlar temizlendi:', deviceId);
       } else {
         // Doküman yoksa da başarılı say
-        console.log('ℹ️ Cihaz için güvenlik kaydı bulunamadı, zaten temiz:', deviceId);
       }
       
       return true;

@@ -28,8 +28,8 @@ import usePremiumLimit from '@/hooks/usePremiumLimit';
 const scheduleReminder = async (medicineName: string, doseTime: string): Promise<string | null> => {
   try {
     const [hour, minute] = doseTime.split(':').map(Number);
-    console.log(`📅 Lokal bildirim planlanıyor (calendar trigger): ${medicineName} - ${doseTime} (${hour}:${minute})`);
-    // Her gün cihazın yerel saatinde tekrarlayan bildirim
+    
+    // Her gün tekrarlanan bildirim için doğru trigger
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
         title: '💊 İlaç Hatırlatma',
@@ -43,12 +43,13 @@ const scheduleReminder = async (medicineName: string, doseTime: string): Promise
         }
       },
       trigger: {
+        type: 'calendar',
         hour,
         minute,
         repeats: true
-      } as any // Type hatası olursa bypass
+      } as any
     });
-    console.log(`✅ Lokal bildirim ayarlandı - ID: ${identifier}, Saat: ${hour}:${minute}`);
+    // ...existing code...
     return identifier;
   } catch (error) {
     console.error(`❌ Lokal bildirim ayarlanırken hata oluştu (${doseTime}):`, error);
@@ -87,7 +88,7 @@ const AddMedicineScreen = () => {
       try {
         // İlk olarak mevcut izinleri kontrol et
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        console.log('📋 Mevcut bildirim izni durumu:', existingStatus);
+        // ...existing code...
         
         let finalStatus = existingStatus;
         
@@ -105,22 +106,21 @@ const AddMedicineScreen = () => {
             },
           });
           finalStatus = status;
-          console.log('📋 Yeni bildirim izni durumu:', finalStatus);
+          // ...existing code...
         }
         
         if (finalStatus !== 'granted') {
           console.warn('⚠️ Bildirim izni reddedildi');
         } else {
-          console.log('✅ Bildirim izni verildi');
+          // ...existing code...
           
           // Bildirim ayarları
           await Notifications.setNotificationHandler({
             handleNotification: async () => ({
-              shouldShowAlert: true,
-              shouldPlaySound: true,
-              shouldSetBadge: true,
               shouldShowBanner: true,
               shouldShowList: true,
+              shouldPlaySound: true,
+              shouldSetBadge: true,
             }),
           });
         }

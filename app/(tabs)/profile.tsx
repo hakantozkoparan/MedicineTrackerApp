@@ -33,15 +33,13 @@ export default function ProfileScreen() {
             setUserName(userData.name || '');
             setUserSurname(userData.surname || '');
             setUserEmail(userData.email || '');
-            setIsAdmin(userData.role === 'admin'); // Rolü kontrol et
+            setIsAdmin(userData.role === 'admin');
           } else {
-            console.log("Kullanıcı belgesi bulunamadı!");
             setIsAdmin(false);
           }
         }, (error) => {
           // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
           if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-            console.log("Kullanıcı çıkış yapmış veya yetki yok, profile listener kapatılıyor.");
             return;
           }
           console.error("Profile snapshot error:", error);
@@ -51,7 +49,7 @@ export default function ProfileScreen() {
           try {
             docUnsubscribe();
           } catch (error) {
-            console.log("Profile listener already unsubscribed");
+            // Hata olursa sessizce geç
           }
         };
       } else {
@@ -67,7 +65,7 @@ export default function ProfileScreen() {
       try {
         unsubscribeAuth();
       } catch (error) {
-        console.log("Auth listener already unsubscribed");
+        // Hata olursa sessizce geç
       }
     };
   }, [auth, router]);

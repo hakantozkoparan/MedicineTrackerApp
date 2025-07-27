@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
 
   const toggleMedicineStatus = async (medicine: Medicine) => {
+    if (!auth || !db) return;
     const user = auth.currentUser;
     if (!user) return;
 
@@ -54,13 +55,25 @@ export default function HomeScreen() {
         // Schedule new notifications
         const newNotificationIds: string[] = [];
         for (const doseTime of medicine.doseTimes) {
+          const [hour, minute] = doseTime.split(':').map(Number);
           const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
-              title: 'İlaç Hatırlatma',
+              title: '💊 İlaç Hatırlatma',
               body: `${medicine.name} ilacınızı alma zamanı!`,
               sound: 'default',
+              badge: 1,
+              data: {
+                medicineName: medicine.name,
+                doseTime,
+                type: 'medicine_reminder'
+              }
             },
-            trigger: { type: 'daily', hour: Number(doseTime.split(':')[0]), minute: Number(doseTime.split(':')[1]) },
+            trigger: {
+              type: 'calendar',
+              hour,
+              minute,
+              repeats: true
+            } as any
           });
           if (notificationId) {
             newNotificationIds.push(notificationId);
@@ -77,13 +90,13 @@ export default function HomeScreen() {
         await updateDoc(medicineRef, { notificationIds: [] });
       }
     } catch (error) {
-      console.error("Error toggling medicine status:", error);
       Alert.alert("Hata", "İlaç durumu güncellenirken bir sorun oluştu.");
     }
   };
 
   useFocusEffect(
     useCallback(() => {
+      if (!auth || !db) return;
       const user = auth.currentUser;
       if (!user) return;
 
@@ -93,10 +106,9 @@ export default function HomeScreen() {
           const name = docSnap.data().name || '';
           setUserName(name);
         } else {
-          console.log("No such user document!");
+          // No such user document!
         }
       }, (error) => {
-        console.error("Error listening to user data:", error);
         Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
       });
 
@@ -109,7 +121,6 @@ export default function HomeScreen() {
         })) as Medicine[];
         setMedicines(userMedicines);
       }, (error) => {
-        console.error("Error fetching medicines:", error);
         Alert.alert("Hata", "İlaçlar alınırken bir sorun oluştu.");
       });
 

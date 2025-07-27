@@ -3,9 +3,24 @@ import PurchaseManager from '@/services/PurchaseManager';
 import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import type { Auth } from 'firebase/auth';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
+
+// Console warning filtresi - RevenueCat ve Expo Notifications warning'larını engelle
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  const message = args.join(' ');
+  // RevenueCat ve expo-notifications warning'larını filtrele
+  if (message.includes('[RevenueCat]') || 
+      message.includes('expo-notifications') || 
+      message.includes('shouldShowAlert is deprecated')) {
+    return; // Bu warning'ları gösterme
+  }
+  originalWarn(...args); // Diğer warning'ları normal göster
+};
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -17,6 +32,9 @@ export default function RootLayout() {
   const navigationDone = useRef(false);
   const router = useRouter();
   const segments = useSegments();
+  // Tip eklemesi
+  const typedAuth: Auth | null = auth;
+  const typedDb: Firestore | null = db;
 
   const [fontsLoaded, fontError] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
@@ -31,7 +49,7 @@ export default function RootLayout() {
 
   // Effect for handling authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(typedAuth as Auth, async (user) => {
       
       setUser(user);
       
@@ -49,7 +67,7 @@ export default function RootLayout() {
           
           // Firestore'dan manuel doğrulama durumunu kontrol et
           try {
-            const userDocRef = doc(db, 'users', user.uid);
+            const userDocRef = doc(typedDb as Firestore, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
@@ -58,18 +76,10 @@ export default function RootLayout() {
               const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
               isEmailVerified = user.emailVerified || isManuallyVerified;
               
-              console.log('🔍 Layout verification check:', {
-                firebaseEmailVerified: user.emailVerified,
-                firestoreEmailVerified: userData.emailVerified,
-                manuallyVerified: isManuallyVerified,
-                emailVerifiedBy: userData.emailVerifiedBy,
-                emailVerifiedAt: userData.emailVerifiedAt,
-                finalEmailVerified: isEmailVerified,
-                userEmail: user.email
-              });
+              // Log satırı kaldırıldı, anahtar-değerler gereksiz yere bırakılmadı.
             }
           } catch (firestoreReadError: any) {
-            console.log('Firestore okuma hatası, Firebase Auth kullanılacak:', firestoreReadError);
+            // ...existing code...
             // Firestore okuma hatası, sadece Firebase Auth durumunu kullan
             isEmailVerified = user.emailVerified;
           }
@@ -78,18 +88,18 @@ export default function RootLayout() {
           
           // Firestore'u senkronize et (sadece yazma işlemi başarısız olursa, okuma işlemi sonucunu koru)
           try {
-            const userDocRef = doc(db, 'users', user.uid);
+            const userDocRef = doc(typedDb as Firestore, 'users', user.uid);
             await updateDoc(userDocRef, {
               emailVerified: isEmailVerified,
               lastSeenAt: new Date()
             });
           } catch (updateError: any) {
             // Firestore güncelleme hatası, ama okuma başarılıysa email doğrulama durumunu koru
-            console.log('Firestore güncelleme hatası (email durumu korunacak):', updateError);
+            // ...existing code...
           }
         } catch (error: any) {
           // Genel auth hatası
-          console.log('Auth genel hatası:', error);
+          // ...existing code...
           setEmailVerified(false);
         }
       } else {
@@ -98,7 +108,7 @@ export default function RootLayout() {
           const purchaseManager = PurchaseManager.getInstance();
           await purchaseManager.logoutUser();
         } catch (error) {
-          console.log('RevenueCat logout hatası:', error);
+          // ...existing code...
         }
         setEmailVerified(false);
       }
@@ -114,12 +124,6 @@ export default function RootLayout() {
   useEffect(() => {
     const newUserId = user?.uid || null;
     if (currentUserId !== newUserId) {
-      console.log('🔄 User changed, navigation guard reset:', { 
-        oldUserId: currentUserId, 
-        newUserId: newUserId,
-        emailVerified: !!emailVerified
-      });
-      
       // Reset navigation guard for new user
       navigationDone.current = false;
       setCurrentUserId(newUserId);
@@ -136,18 +140,11 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
     
-    console.log('🧭 Navigation decision:', {
-      user: !!user,
-      emailVerified: !!emailVerified,
-      inAuthGroup,
-      currentSegments: segments,
-      userEmail: user?.email,
-      navigationDone: navigationDone.current
-    });
+    // Log satırı kaldırıldı, anahtar-değerler gereksiz yere bırakılmadı.
 
     // Navigation guard - tek sefer yapılması için
     if (navigationDone.current) {
-      console.log('🛑 Navigation already completed, skipping');
+      // ...existing code...
       return;
     }
 
@@ -155,7 +152,7 @@ export default function RootLayout() {
     const navigationTimeout = setTimeout(() => {
       // Double check navigation guard
       if (navigationDone.current) {
-        console.log('🛑 Navigation already done in timeout, skipping');
+        // ...existing code...
         return;
       }
 
@@ -165,21 +162,21 @@ export default function RootLayout() {
         const isInTabs = segments.some(segment => segment === '(tabs)');
         
         if (!isInTabs) {
-          console.log('🚀 Navigating verified user to main app');
+          // ...existing code...
           navigationDone.current = true; // Set BEFORE navigation to prevent loops
           router.replace('/(tabs)');
         } else {
-          console.log('✅ Verified user already in main app');
+          // ...existing code...
           navigationDone.current = true;
         }
       } else {
         // Kullanıcı giriş yapmamış VEYA email doğrulanmamış - login'e yönlendir
         if (!inAuthGroup) {
-          console.log('❌ Redirecting to login (no verified user)');
+          // ...existing code...
           navigationDone.current = true; // Set BEFORE navigation to prevent loops
           router.replace('/login');
         } else {
-          console.log('❌ Already on login page');
+          // ...existing code...
           navigationDone.current = true;
         }
       }

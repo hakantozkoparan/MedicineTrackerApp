@@ -21,45 +21,51 @@ const DebugScreen = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.replace('/login');
-        return;
-      }
+    let unsubscribe: (() => void) | undefined;
+    if (auth) {
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          router.replace('/login');
+          return;
+        }
 
-      // Admin kontrolü
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          setIsAdmin(userData.role === 'admin');
+        // Admin kontrolü
+        if (db) {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const userData = docSnap.data();
+              setIsAdmin(userData.role === 'admin');
+            } else {
+              setIsAdmin(false);
+            }
+          }, (error) => {
+            // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
+            if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+              setIsAdmin(false);
+              return;
+            }
+            console.error('Debug snapshot error:', error);
+          });
+
+          return () => {
+            try {
+              userDocUnsubscribe();
+            } catch (error) {
+              // Hata olursa sessizce geç
+            }
+          };
         } else {
           setIsAdmin(false);
         }
-      }, (error) => {
-        // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
-        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-          console.log('Kullanıcı çıkış yapmış, debug listener kapatılıyor.');
-          setIsAdmin(false);
-          return;
-        }
-        console.error('Debug snapshot error:', error);
       });
-
-      return () => {
-        try {
-          userDocUnsubscribe();
-        } catch (error) {
-          console.log("Debug listener already unsubscribed");
-        }
-      };
-    });
+    }
 
     return () => {
       try {
-        unsubscribe();
+        if (unsubscribe) unsubscribe();
       } catch (error) {
-        console.log("Auth listener already unsubscribed in debug");
+        // Hata olursa sessizce geç
       }
     };
   }, []);

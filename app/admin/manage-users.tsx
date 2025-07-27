@@ -5,16 +5,16 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDocs, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
@@ -41,20 +41,26 @@ const ManageUsersScreen = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    if (!auth) {
+      router.replace('/login');
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace('/login');
         return;
       }
-
-      // Admin kontrolü
+      if (!db) {
+        setIsAdmin(false);
+        router.replace('/login');
+        return;
+      }
       const userDocRef = doc(db, 'users', user.uid);
       const userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data();
           const userIsAdmin = userData.role === 'admin';
           setIsAdmin(userIsAdmin);
-          
           if (!userIsAdmin) {
             Alert.alert('Yetkisiz Erişim', 'Bu sayfaya erişim yetkiniz yok.');
             router.replace('/login');
@@ -65,44 +71,39 @@ const ManageUsersScreen = () => {
           router.replace('/login');
         }
       }, (error) => {
-        // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
         if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-          console.log('Kullanıcı çıkış yapmış, manage-users listener kapatılıyor.');
           setIsAdmin(false);
           router.replace('/login');
           return;
         }
-        console.error('Manage users snapshot error:', error);
+        // ...existing code...
       });
-
       return () => {
         try {
           userDocUnsubscribe();
         } catch (error) {
-          console.log("Manage users listener already unsubscribed");
+          // ...existing code...
         }
       };
     });
-
     return () => {
       try {
         unsubscribe();
       } catch (error) {
-        console.log("Auth listener already unsubscribed in manage-users");
+        // ...existing code...
       }
     };
   }, []);
 
   const fetchUsers = async () => {
     try {
+      if (!db) throw new Error('Firestore bağlantısı yok.');
       const usersCollection = collection(db, 'users');
       const userSnapshot = await getDocs(usersCollection);
       const usersList = userSnapshot.docs.map(doc => ({
         uid: doc.id,
         ...doc.data()
       })) as User[];
-      
-      // Admin kullanıcıları en üste koy, sonra email doğrulanmamış olanları
       usersList.sort((a, b) => {
         if (a.role === 'admin' && b.role !== 'admin') return -1;
         if (a.role !== 'admin' && b.role === 'admin') return 1;
@@ -110,11 +111,9 @@ const ManageUsersScreen = () => {
         if (a.emailVerified && !b.emailVerified) return 1;
         return 0;
       });
-      
       setUsers(usersList);
-      setFilteredUsers(usersList); // Arama için filtrelenmiş listeyi de set et
+      setFilteredUsers(usersList);
     } catch (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error);
       Alert.alert('Hata', 'Kullanıcılar yüklenirken bir sorun oluştu.');
     } finally {
       setLoading(false);
@@ -164,13 +163,7 @@ const ManageUsersScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('🔧 Manuel email doğrulama başlatıldı:', {
-                targetUserId: targetUser.uid,
-                targetUserEmail: targetUser.email,
-                currentEmailVerified: targetUser.emailVerified,
-                adminEmail: auth.currentUser?.email
-              });
-              
+              if (!db || !auth) throw new Error('Gerekli servisler yok.');
               const userDocRef = doc(db, 'users', targetUser.uid);
               const updateData = {
                 emailVerified: true,
@@ -179,10 +172,8 @@ const ManageUsersScreen = () => {
                 emailVerifiedByAdmin: auth.currentUser?.email || 'unknown',
                 manualVerificationDate: new Date()
               };
-              
               await updateDoc(userDocRef, updateData).catch(async (firestoreError) => {
                 if (firestoreError.code === 'not-found') {
-                  console.log('🔧 Kullanıcı belgesi bulunamadı, yeni belge oluşturuluyor');
                   await setDoc(userDocRef, {
                     ...targetUser,
                     ...updateData
@@ -191,22 +182,12 @@ const ManageUsersScreen = () => {
                   throw firestoreError;
                 }
               });
-
-              console.log('✅ Manuel email doğrulama tamamlandı:', {
-                targetUserId: targetUser.uid,
-                targetUserEmail: targetUser.email,
-                updateData
-              });
-
               Alert.alert(
                 'Başarılı!', 
                 `${targetUser.name} ${targetUser.surname} kullanıcısının email adresi manuel olarak doğrulandı. Kullanıcı artık giriş yapabilir.`
               );
-              
-              // Listeyi yenile
               fetchUsers();
             } catch (error: any) {
-              console.error('❌ Manuel doğrulama hatası:', error);
               Alert.alert('Hata', 'Manuel doğrulama işlemi başarısız oldu: ' + error.message);
             }
           }
@@ -225,17 +206,16 @@ const ManageUsersScreen = () => {
           text: 'Onayla',
           onPress: async () => {
             try {
+              if (!db || !auth) throw new Error('Gerekli servisler yok.');
               const userDocRef = doc(db, 'users', targetUser.uid);
               await updateDoc(userDocRef, {
                 role: 'admin',
                 promotedToAdminAt: new Date(),
                 promotedBy: auth.currentUser?.email || 'unknown'
               });
-
               Alert.alert('Başarılı!', 'Kullanıcıya admin yetkisi verildi.');
               fetchUsers();
             } catch (error: any) {
-              console.error('Admin yetkisi verme hatası:', error);
               Alert.alert('Hata', 'Admin yetkisi verilirken bir sorun oluştu.');
             }
           }

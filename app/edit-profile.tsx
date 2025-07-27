@@ -38,65 +38,52 @@ const EditProfileScreen = () => {
   const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user) {
       router.replace('/login');
       return;
     }
 
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        setName(userData.name || '');
-        setSurname(userData.surname || '');
-        setEmail(userData.email || user.email || '');
-        setOriginalEmail(user.email || '');
-        setIsAdmin(userData.role === 'admin');
-        
-        // Hibrit email verification kontrolü
-        const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
-        const finalEmailVerified = user.emailVerified || isManuallyVerified;
-        setEmailVerified(finalEmailVerified);
-        
-        console.log('📝 Edit-profile verification check:', {
-          firebaseEmailVerified: user.emailVerified,
-          firestoreEmailVerified: userData.emailVerified,
-          manuallyVerified: isManuallyVerified,
-          emailVerifiedBy: userData.emailVerifiedBy,
-          emailVerifiedAt: userData.emailVerifiedAt,
-          finalEmailVerified: finalEmailVerified,
-          userEmail: user.email
-        });
-      } else {
-        console.log("No such user document!");
-        // Kullanıcı belgesi yoksa, Firebase Auth'daki bilgileri kullan
-        setName('');
-        setSurname('');
-        setEmail(user.email || '');
-        setOriginalEmail(user.email || '');
-        setIsAdmin(false);
-        setEmailVerified(user.emailVerified);
-      }
-      setLoading(false);
-    }, (error) => {
-      // Permission hatası veya kullanıcı çıkış yapmışsa sessizce handle et
-      if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-        console.log("Kullanıcı çıkış yapmış veya yetki yok, listener kapatılıyor.");
+    let unsubscribe: (() => void) | undefined;
+    if (db) {
+      const userDocRef = doc(db, 'users', user.uid);
+      unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setName(userData.name || '');
+          setSurname(userData.surname || '');
+          setEmail(userData.email || user.email || '');
+          setOriginalEmail(user.email || '');
+          setIsAdmin(userData.role === 'admin');
+          const isManuallyVerified = userData.emailVerifiedBy === 'admin' && userData.emailVerifiedAt && userData.emailVerified === true;
+          const finalEmailVerified = user.emailVerified || isManuallyVerified;
+          setEmailVerified(finalEmailVerified);
+        } else {
+          setName('');
+          setSurname('');
+          setEmail(user.email || '');
+          setOriginalEmail(user.email || '');
+          setIsAdmin(false);
+          setEmailVerified(user.emailVerified);
+        }
         setLoading(false);
-        return;
-      }
-      console.error("Error fetching user data:", error);
-      Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
-      setLoading(false);
-    });
-
+      }, (error) => {
+        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+          setLoading(false);
+          return;
+        }
+        console.error("Error fetching user data:", error);
+        Alert.alert("Hata", "Kullanıcı bilgileri alınırken bir sorun oluştu.");
+        setLoading(false);
+      });
+    }
     return () => {
-      try {
-        unsubscribe();
-      } catch (error) {
-        // Listener zaten kapalıysa hata vermesin
-        console.log("Listener already unsubscribed");
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          // Listener zaten kapalıysa hata vermesin
+        }
       }
     };
   }, [router]);
@@ -114,7 +101,7 @@ const EditProfileScreen = () => {
 
   // Doğrulama maili yeniden gönder
   const resendVerificationEmail = async () => {
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user) return;
 
     try {
@@ -131,7 +118,7 @@ const EditProfileScreen = () => {
 
   // Admin tarafından manuel email doğrulama
   const manualEmailVerification = async () => {
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user || !isAdmin) return;
 
     Alert.alert(
@@ -144,7 +131,7 @@ const EditProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Firestore'da güncelle
+              if (!db) throw new Error('Firestore bağlantısı yok.');
               const userDocRef = doc(db, 'users', user.uid);
               await updateDoc(userDocRef, {
                 emailVerified: true,
@@ -166,7 +153,6 @@ const EditProfileScreen = () => {
                   throw firestoreError;
                 }
               });
-
               Alert.alert(
                 'Başarılı!', 
                 'Email adresi manuel olarak doğrulandı. Kullanıcı artık giriş yapabilir.',
@@ -184,7 +170,6 @@ const EditProfileScreen = () => {
                 ]
               );
             } catch (error: any) {
-              console.error('Manuel doğrulama hatası:', error);
               Alert.alert('Hata', 'Manuel doğrulama işlemi başarısız oldu.');
             }
           }
@@ -198,7 +183,7 @@ const EditProfileScreen = () => {
       return;
     }
 
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user) {
       router.replace('/login');
       return;
@@ -213,30 +198,21 @@ const EditProfileScreen = () => {
     }
 
     try {
+      if (!db) throw new Error('Firestore bağlantısı yok.');
       const userDocRef = doc(db, 'users', user.uid);
-
-      // E-posta değiştiyse Firebase Authentication'ı güncelle
       if (emailChanged) {
-        // Önce kullanıcıyı yeniden kimlik doğrulaması yap
         const credential = EmailAuthProvider.credential(originalEmail, password);
         await reauthenticateWithCredential(user, credential);
-        
         try {
-          // Firebase Authentication'da email'i güncelle
           await updateEmail(user, email);
-          
-          // Email güncellendi, yeni email'e doğrulama gönder
           await sendEmailVerification(user);
-          
-          // Firestore'daki kullanıcı bilgilerini güncelle
           await updateDoc(userDocRef, {
             name,
             surname,
             email,
-            emailVerified: false, // Yeni email doğrulanmamış
+            emailVerified: false,
             emailChangedAt: new Date()
           }).catch(async (firestoreError) => {
-            // Belge yoksa oluştur
             if (firestoreError.code === 'not-found') {
               await setDoc(userDocRef, {
                 name,
@@ -251,7 +227,6 @@ const EditProfileScreen = () => {
               throw firestoreError;
             }
           });
-
           Alert.alert(
             'Email Güncellendi!', 
             `E-posta adresiniz ${email} olarak güncellendi ve yeni adresinize doğrulama e-postası gönderildi.\n\nLütfen yeni e-posta adresinizi doğrulayın. Doğrulama sonrası yeni email ile giriş yapabileceksiniz.\n\nŞimdi çıkış yapılacak.`,
@@ -259,15 +234,15 @@ const EditProfileScreen = () => {
               {
                 text: 'Tamam',
                 onPress: async () => {
-                  await signOut(auth);
+                  if (auth) {
+                    await signOut(auth);
+                  }
                   router.replace('/login');
                 }
               }
             ]
           );
         } catch (emailError: any) {
-          console.error('Email güncelleme hatası:', emailError);
-          
           if (emailError.code === 'auth/email-already-in-use') {
             Alert.alert('Hata', 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.');
             setErrors(prev => ({ ...prev, email: 'Bu e-posta adresi zaten kullanımda.' }));
@@ -286,13 +261,11 @@ const EditProfileScreen = () => {
           return;
         }
       } else {
-        // E-posta değişmiyorsa sadece diğer bilgileri güncelle
         await updateDoc(userDocRef, {
           name,
           surname,
           email,
         }).catch(async (firestoreError) => {
-          // Belge yoksa oluştur
           if (firestoreError.code === 'not-found') {
             await setDoc(userDocRef, {
               name,
@@ -305,15 +278,11 @@ const EditProfileScreen = () => {
             throw firestoreError;
           }
         });
-
         Alert.alert('Başarılı', 'Hesap bilgileri güncellendi.');
         router.back();
       }
     } catch (error: any) {
-      console.error('Error updating profile: ', error);
-      
       let errorMessage = 'Hesap bilgileri güncellenirken bir sorun oluştu.';
-      
       if (error.code === 'auth/wrong-password') {
         errorMessage = 'Girdiğiniz şifre hatalı.';
         setErrors(prev => ({ ...prev, password: 'Girdiğiniz şifre hatalı.' }));
@@ -332,7 +301,9 @@ const EditProfileScreen = () => {
             {
               text: 'Tamam',
               onPress: async () => {
-                await signOut(auth);
+                if (auth) {
+                  await signOut(auth);
+                }
                 router.replace('/login');
               }
             }
@@ -340,7 +311,6 @@ const EditProfileScreen = () => {
         );
         return;
       }
-      
       Alert.alert('Hata', errorMessage);
     }
   };

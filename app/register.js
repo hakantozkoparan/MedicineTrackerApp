@@ -30,46 +30,32 @@ const RegisterScreen = () => {
 
   // Firebase konfigürasyon kontrolü
   React.useEffect(() => {
-    console.log('🔧 Firebase konfigürasyon kontrolü:', {
-      hasAuth: !!auth,
-      hasDb: !!db,
-      platform: Platform.OS,
-      isDev: __DEV__
-    });
+    // Firebase configuration check completed
   }, []);
 
   const getPushNotificationToken = async () => {
     try {
-      console.log('🔔 Push notification token alma işlemi başlatılıyor...');
       
       if (!Device.isDevice) {
-        console.log('📱 Simülatör ortamı, push token atlanıyor');
         return null;
       }
 
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
-      console.log('🔍 Mevcut notification permission:', existingStatus);
-      
       if (existingStatus !== 'granted') {
-        console.log('🔄 Permission isteniyor...');
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
-        console.log('✅ Yeni permission durumu:', status);
       }
       
       if (finalStatus !== 'granted') {
-        console.log('❌ Notification permission reddedildi');
         return null; // Hata yerine null döndür
       }
       
-      console.log('🎯 Expo push token alınıyor...');
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: Constants.expoConfig?.extra?.eas?.projectId,
       });
       
-      console.log('✅ Push token başarıyla alındı:', tokenData.data);
       return tokenData.data;
       
     } catch (error) {
@@ -132,15 +118,11 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      console.log('🔄 Register işlemi başlatılıyor...', { email, hasPassword: !!password });
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      console.log('✅ Firebase Auth kullanıcı oluşturuldu:', user.uid);
 
       const pushToken = await getPushNotificationToken();
-      console.log('📱 Push token alındı:', pushToken ? 'var' : 'yok');
 
       // Save user data to Firestore
       const userData = {
@@ -159,11 +141,8 @@ const RegisterScreen = () => {
         emailVerified: false,
       };
       
-      console.log('🔄 Firestore\'a kullanıcı verisi kaydediliyor...', user.uid);
       try {
-        console.log('📝 Firestore kayıt verisi:', JSON.stringify(userData));
         await setDoc(doc(db, 'users', user.uid), userData);
-        console.log('✅ Firestore\'a kullanıcı verisi kaydedildi');
       } catch (firestoreError) {
         console.error('❌ Firestore kayıt hatası:', {
           code: firestoreError.code,
@@ -175,20 +154,15 @@ const RegisterScreen = () => {
       }
 
       // Email doğrulama gönder
-      console.log('📧 Email doğrulama gönderiliyor...');
       await sendEmailVerification(user);
-      console.log('✅ Email doğrulama gönderildi');
 
       // Kullanıcıyı çıkış yap ki email doğrulaması sonrası temiz giriş yapabilsin
-      console.log('🔄 Kullanıcı çıkış yapılıyor...');
       await signOut(auth);
-      console.log('✅ Kullanıcı çıkış yapıldı');
 
       // Başarılı kayıt kaydı
       try {
         const securityManager = SecurityManager.getInstance();
         await securityManager.recordAttempt('register', true, email);
-        console.log('✅ Security log kaydedildi');
       } catch (error) {
         console.error('❌ Başarılı kayıt kaydı hatası:', error);
       }

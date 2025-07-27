@@ -30,8 +30,19 @@ const scheduleReminder = async (medicineName: string, doseTime: string): Promise
         title: 'İlaç Hatırlatma',
         body: `${medicineName} ilacınızı alma zamanı!`,
         sound: 'default',
+        badge: 1,
+        data: {
+          medicineName,
+          doseTime,
+          type: 'medicine_reminder'
+        }
       },
-      trigger: { type: 'daily', hour: Number(hour), minute: Number(minute) },
+      trigger: {
+        type: 'calendar',
+        hour: Number(hour),
+        minute: Number(minute),
+        repeats: true
+      } as any
     });
     return identifier;
   } catch (error) {
@@ -80,7 +91,7 @@ const EditMedicineScreen = () => {
   const [currentDoseIndex, setCurrentDoseIndex] = useState(0);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !auth || !db) return;
     const user = auth.currentUser;
     if (!user) {
       router.replace('/login');
@@ -168,6 +179,11 @@ const EditMedicineScreen = () => {
         );
         return;
       }
+    }
+
+    if (!auth || !db) {
+      Alert.alert('Hata', 'Firebase bağlantısı kurulamadı.');
+      return;
     }
 
     const user = auth.currentUser;
