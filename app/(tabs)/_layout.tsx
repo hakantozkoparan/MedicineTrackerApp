@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { usePremiumLimit } from '@/hooks/usePremiumLimit';
 
 // AdMob'u güvenli şekilde import et
 let AdMobBanner: any = null;
@@ -20,6 +21,7 @@ export default function TabLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const auth = getAuth();
+  const { isPremium } = usePremiumLimit();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -119,41 +121,43 @@ export default function TabLayout() {
             <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
           </Tabs>
         </View>
-        {/* AdMob Banner - Tab bar'ın tam üstünde, position absolute */}
-        <View style={{ position: 'absolute', bottom: 90, left: 0, right: 0 }}>
-          {AdMobBanner ? (
-            <AdMobBanner
-              bannerSize="smartBannerPortrait"
-              adUnitID="ca-app-pub-3940256099942544/6300978111" // TEST BANNER ID
-              servePersonalizedAds={false}
-              onDidFailToReceiveAdWithError={(err: any) => {
-                console.log('AdMob Test Banner error:', err);
-              }}
-              onAdViewDidReceiveAd={() => {
-                console.log('AdMob Test Banner loaded successfully!');
-              }}
-            />
-          ) : (
-            // Expo Go'da AdMob mevcut değilse placeholder göster
-            <View style={{
-              height: 50,
-              backgroundColor: COLORS.lightGray,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderTopWidth: 1,
-              borderTopColor: COLORS.gray,
-              borderBottomWidth: 1,
-              borderBottomColor: COLORS.gray
-            }}>
-              <Text style={{ color: COLORS.darkGray, fontSize: 12 }}>
-                📱 Banner Reklam Alanı
-              </Text>
-              <Text style={{ color: COLORS.gray, fontSize: 10 }}>
-                (Development Build'de gerçek reklam görünür)
-              </Text>
-            </View>
-          )}
-        </View>
+        {/* AdMob Banner - Premium kullanıcılarda gösterilmez */}
+        {!isPremium && (
+          <View style={{ position: 'absolute', bottom: 90, left: 0, right: 0 }}>
+            {AdMobBanner ? (
+              <AdMobBanner
+                bannerSize="smartBannerPortrait"
+                adUnitID="ca-app-pub-3940256099942544/6300978111" // TEST BANNER ID
+                servePersonalizedAds={false}
+                onDidFailToReceiveAdWithError={(err: any) => {
+                  console.log('AdMob Test Banner error:', err);
+                }}
+                onAdViewDidReceiveAd={() => {
+                  console.log('AdMob Test Banner loaded successfully!');
+                }}
+              />
+            ) : (
+              // Expo Go'da AdMob mevcut değilse placeholder göster (sadece free kullanıcılarda)
+              <View style={{
+                height: 50,
+                backgroundColor: COLORS.lightGray,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderTopWidth: 1,
+                borderTopColor: COLORS.gray,
+                borderBottomWidth: 1,
+                borderBottomColor: COLORS.gray
+              }}>
+                <Text style={{ color: COLORS.darkGray, fontSize: 12 }}>
+                  📱 Banner Reklam Alanı
+                </Text>
+                <Text style={{ color: COLORS.gray, fontSize: 10 }}>
+                  (Development Build'de gerçek reklam görünür)
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
