@@ -163,7 +163,7 @@ export default function HomeScreen() {
         {medicines.length > 0 && (
           <View style={styles.infoContainer}>
             <MaterialCommunityIcons name="information" size={SIZES.font} color={COLORS.gray} style={styles.infoIconText} />
-            <Text style={styles.infoText}>İlacı kapatmanız durumunda bildirim gelmesi durdurulacaktır.</Text>
+            <Text style={styles.infoText}>{t('medicineToggleWarning')}</Text>
           </View>
         )}
 

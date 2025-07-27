@@ -74,6 +74,7 @@ export default {
   welcomeMessage: '欢迎',
   todayReminders: "今日提醒",
   noRemindersToday: '今天没有提醒',
+  medicineToggleWarning: '关闭药物将停止通知。',
   
   // Medicine
   medicineName: '药物名称',

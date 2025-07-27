@@ -73,6 +73,7 @@ export default {
   welcomeMessage: 'Hoş geldiniz',
   todayReminders: "Bugünün Hatırlatıcıları",
   noRemindersToday: 'Bugün için hatırlatıcı yok',
+  medicineToggleWarning: 'İlacı kapatmanız durumunda bildirim gelmesi durdurulacaktır.',
   
   // Medicine
   medicineName: 'İlaç Adı',

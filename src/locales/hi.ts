@@ -74,6 +74,7 @@ export default {
   welcomeMessage: 'स्वागत है',
   todayReminders: "आज के अनुस्मारक",
   noRemindersToday: 'आज के लिए कोई अनुस्मारक नहीं है',
+  medicineToggleWarning: 'दवा बंद करने से सूचनाएं रुक जाएंगी।',
   
   // Medicine
   medicineName: 'दवा का नाम',

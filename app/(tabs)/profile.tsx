@@ -100,6 +100,19 @@ export default function ProfileScreen() {
     );
   };
 
+  // Dil seçimi için flag ve isim eşleştirmesi
+  const getLanguageDisplay = (langCode: string) => {
+    switch (langCode) {
+      case 'tr': return '🇹🇷 Türkçe';
+      case 'en': return '🇺🇸 English';
+      case 'es': return '🇪🇸 Español';
+      case 'zh': return '🇨🇳 中文';
+      case 'ru': return '🇷🇺 Русский';
+      case 'hi': return '🇮🇳 हिन्दी';
+      default: return '🇺🇸 English';
+    }
+  };
+
   const handleLanguageChange = () => {
     const languages = getSupportedLanguages();
     const buttons = languages.map(lang => ({
@@ -145,7 +158,7 @@ export default function ProfileScreen() {
           <ProfileMenuItem
             icon="language-outline"
             title={t('language')}
-            subtitle={`${currentLanguage === 'tr' ? '🇹🇷 Türkçe' : '🇺🇸 English'}`}
+            subtitle={getLanguageDisplay(currentLanguage)}
             onPress={handleLanguageChange}
           />
           

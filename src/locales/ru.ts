@@ -74,6 +74,7 @@ export default {
   welcomeMessage: 'Добро пожаловать',
   todayReminders: "Напоминания на сегодня",
   noRemindersToday: 'На сегодня напоминаний нет',
+  medicineToggleWarning: 'Отключение лекарства остановит уведомления.',
   
   // Medicine
   medicineName: 'Название лекарства',

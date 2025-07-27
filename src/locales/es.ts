@@ -74,6 +74,7 @@ export default {
   welcomeMessage: 'Bienvenido',
   todayReminders: "Recordatorios de Hoy",
   noRemindersToday: 'No hay recordatorios para hoy',
+  medicineToggleWarning: 'Desactivar el medicamento detendrá las notificaciones.',
   
   // Medicine
   medicineName: 'Nombre del Medicamento',

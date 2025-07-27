@@ -75,6 +75,7 @@ export default {
   welcomeMessage: 'Welcome',
   todayReminders: "Today's Reminders",
   noRemindersToday: 'No reminders for today',
+  medicineToggleWarning: 'Turning off the medicine will stop notifications.',
   addMedicine: 'Add Medicine',
   
   // Medicine
