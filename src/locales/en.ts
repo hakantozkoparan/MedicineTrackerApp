@@ -1,4 +1,13 @@
 export default {
+  premiumFeature_unlimitedMedicine_title: 'Unlimited Medicine Tracking',
+premiumFeature_unlimitedMedicine_desc: 'Add and track as many medicines as you want.',
+premiumFeature_aiChat_title: 'AI Chat Support',
+premiumFeature_aiChat_desc: 'Chat with AI about health and medicine topics.',
+premiumFeature_adFree_title: 'Ad-Free Experience',
+premiumFeature_adFree_desc: 'Use the app completely ad-free.',
+premiumFeature_support_title: 'Premium Support',
+premiumFeature_support_desc: 'Priority customer support service.',
+  premiumRequiredMessage: 'You must be a premium member to use AI chat.',
   // PremiumModal localization keys
   // PremiumModal localization keys
   goPremium: "Go Premium",
@@ -76,6 +85,18 @@ export default {
   todayReminders: "Today's Reminders",
   noRemindersToday: 'No reminders for today',
   medicineToggleWarning: 'Turning off the medicine will stop notifications.',
+  
+  // AI Chat
+  aiChat: 'AI Chat',
+  aiWelcomeMessage: 'Hello! I can answer your questions about health and medicine. How can I help you?',
+  aiErrorMessage: 'Sorry, I cannot help you right now. Please try again later.',
+  aiThinking: 'Thinking...',
+  aiInputPlaceholder: 'Ask about health or medicine...',
+  aiDisclaimer: 'AI assistant provides general information only. Consult your doctor for serious health issues.',
+  clearChat: 'Clear Chat',
+  clearChatConfirm: 'All messages will be deleted. Are you sure?',
+  clear: 'Clear',
+  you: 'You',
   addMedicine: 'Add Medicine',
   
   // Medicine

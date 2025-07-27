@@ -1,4 +1,13 @@
 export default {
+  premiumFeature_unlimitedMedicine_title: 'असीमित दवा जोड़ें',
+premiumFeature_unlimitedMedicine_desc: 'जितनी चाहें उतनी दवाएं जोड़ें और ट्रैक करें।',
+premiumFeature_aiChat_title: 'एआई चैट समर्थन',
+premiumFeature_aiChat_desc: 'स्वास्थ्य और दवा विषयों पर एआई से चैट करें।',
+premiumFeature_adFree_title: 'विज्ञापन-मुक्त अनुभव',
+premiumFeature_adFree_desc: 'ऐप को पूरी तरह से विज्ञापन-मुक्त उपयोग करें।',
+premiumFeature_support_title: 'प्रीमियम समर्थन',
+premiumFeature_support_desc: 'प्राथमिकता ग्राहक सहायता सेवा।',
+  premiumRequiredMessage: 'AI चैट का उपयोग करने के लिए आपको प्रीमियम सदस्य होना चाहिए।',
   // PremiumModal localization keys
   goPremium: "प्रीमियम पर जाएं",
   moreFeatures: "असीमित सुविधाओं के साथ और भी बहुत कुछ",
@@ -75,6 +84,18 @@ export default {
   todayReminders: "आज के अनुस्मारक",
   noRemindersToday: 'आज के लिए कोई अनुस्मारक नहीं है',
   medicineToggleWarning: 'दवा बंद करने से सूचनाएं रुक जाएंगी।',
+  
+  // AI Chat
+  aiChat: 'AI चैट',
+  aiWelcomeMessage: 'नमस्ते! मैं स्वास्थ्य और दवाओं के बारे में आपके सवालों का जवाब दे सकता हूं। मैं आपकी कैसे मदद कर सकता हूं?',
+  aiErrorMessage: 'खुशी, मैं अभी आपकी मदद नहीं कर सकता। कृपया बाद में कोशिश करें।',
+  aiThinking: 'सोच रहा हूं...',
+  aiInputPlaceholder: 'स्वास्थ्य या दवा के बारे में पूछें...',
+  aiDisclaimer: 'AI सहायक केवल सामान्य जानकारी प्रदान करता है। गंभीर स्वास्थ्य समस्याओं के लिए अपने डॉक्टर से सलाह लें।',
+  clearChat: 'चैट साफ़ करें',
+  clearChatConfirm: 'सभी संदेश हटा दिए जाएंगे। क्या आप सुनिश्चित हैं?',
+  clear: 'साफ़ करें',
+  you: 'आप',
   
   // Medicine
   medicineName: 'दवा का नाम',

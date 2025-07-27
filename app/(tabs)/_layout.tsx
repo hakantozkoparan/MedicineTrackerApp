@@ -104,6 +104,8 @@ export default function TabLayout() {
                   iconName = focused ? 'home' : 'home-outline';
                 } else if (route.name === 'medicines') {
                   iconName = focused ? 'medkit' : 'medkit-outline';
+                } else if (route.name === 'ai-chat') {
+                  iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
                 } else if (route.name === 'profile') {
                   iconName = focused ? 'person' : 'person-outline';
                 }
@@ -113,6 +115,7 @@ export default function TabLayout() {
           >
             <Tabs.Screen name="index" options={{ title: t('home') }} />
             <Tabs.Screen name="medicines" options={{ title: t('medicines') }} />
+            <Tabs.Screen name="ai-chat" options={{ title: t('aiChat') }} />
             <Tabs.Screen name="profile" options={{ title: t('profile') }} />
           </Tabs>
         </View>

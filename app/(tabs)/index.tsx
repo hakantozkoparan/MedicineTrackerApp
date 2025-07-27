@@ -59,7 +59,7 @@ export default function HomeScreen() {
           const [hour, minute] = doseTime.split(':').map(Number);
           const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
-              title: '💊 İlaç Hatırlatma',
+              title: ' İlaç Hatırlatma',
               body: `${medicine.name} ilacınızı alma zamanı!`,
               sound: 'default',
               badge: 1,

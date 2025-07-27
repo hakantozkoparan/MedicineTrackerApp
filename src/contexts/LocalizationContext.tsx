@@ -3,11 +3,11 @@ import * as Localization from 'expo-localization';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import en from '../locales/en';
-import tr from '../locales/tr';
 import es from '../locales/es';
-import zh from '../locales/zh';
-import ru from '../locales/ru';
 import hi from '../locales/hi';
+import ru from '../locales/ru';
+import tr from '../locales/tr';
+import zh from '../locales/zh';
 
 type Language = 'tr' | 'en' | 'es' | 'zh' | 'ru' | 'hi';
 type Translations = typeof tr;
@@ -43,71 +43,55 @@ const getDeviceLanguage = (): Language => {
       const languageCode = deviceLocale.languageCode;
       const regionCode = deviceLocale.regionCode;
       
-      console.log('🌍 Device Locale:', {
-        languageCode,
-        regionCode,
-        locale: `${languageCode}-${regionCode}`
-      });
-      
       // Türkçe dil kontrolü - daha kapsamlı
       if (languageCode === 'tr' || 
           regionCode === 'TR' || 
           regionCode === 'CY' || // Kıbrıs
           regionCode === 'AZ' || // Azerbaycan (bazı durumlarda Türkçe)
           deviceLocale.textDirection === 'ltr' && languageCode === 'tr') {
-        console.log('🇹🇷 Türkçe dil tespit edildi');
         return 'tr';
       }
       
       // İngilizce dil kontrolü
       if (languageCode === 'en' || 
           ['US', 'GB', 'AU', 'CA', 'NZ', 'IE', 'ZA'].includes(regionCode || '')) {
-        console.log('🇺🇸 İngilizce dil tespit edildi');
         return 'en';
       }
       
       // İspanyolca dil kontrolü
       if (languageCode === 'es' || 
           ['ES', 'MX', 'AR', 'CO', 'PE', 'VE', 'CL'].includes(regionCode || '')) {
-        console.log('🇪🇸 İspanyolca dil tespit edildi');
         return 'es';
       }
       
       // Çince dil kontrolü
       if (languageCode === 'zh' || 
           ['CN', 'TW', 'HK', 'SG'].includes(regionCode || '')) {
-        console.log('🇨🇳 Çince dil tespit edildi');
         return 'zh';
       }
       
       // Rusça dil kontrolü
       if (languageCode === 'ru' || 
           ['RU', 'BY', 'KZ', 'KG', 'UZ'].includes(regionCode || '')) {
-        console.log('🇷🇺 Rusça dil tespit edildi');
         return 'ru';
       }
       
       // Hintçe dil kontrolü
       if (languageCode === 'hi' || regionCode === 'IN') {
-        console.log('🇮🇳 Hintçe dil tespit edildi');
         return 'hi';
       }
       
       // Desteklenen dillerin kapsamlı kontrolü
       const supportedLanguages: Language[] = ['tr', 'en', 'es', 'zh', 'ru', 'hi'];
       if (supportedLanguages.includes(languageCode as Language)) {
-        console.log(`✅ Desteklenen dil tespit edildi: ${languageCode}`);
         return languageCode as Language;
-      }
-      
-      console.log(`⚠️ Desteklenmeyen dil: ${languageCode}-${regionCode}`);
+      }      
     }
   } catch (error) {
     console.warn('⚠️ Device language detection error:', error);
   }
   
   // Varsayılan: İngilizce
-  console.log('🇺🇸 Varsayılan dil: İngilizce');
   return 'en';
 };
 
@@ -119,24 +103,19 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Uygulama başladığında kayıtlı dil tercihini yükle
   useEffect(() => {
     const loadSavedLanguage = async () => {
-      try {
-        console.log('🔄 Dil tercihi yükleniyor...');
-        
+      try {        
         // Önce kayıtlı dil tercihini kontrol et
         const savedLanguage = await AsyncStorage.getItem('app_language');
         
         if (savedLanguage && ['tr', 'en', 'es', 'zh', 'ru', 'hi'].includes(savedLanguage)) {
-          console.log('💾 Kayıtlı dil tercihi bulundu:', savedLanguage);
           setCurrentLanguage(savedLanguage as Language);
         } else {
           // Kayıtlı dil yoksa cihaz diline göre ayarla
           const deviceLanguage = getDeviceLanguage();
-          console.log('📱 Cihaz dili kullanılıyor:', deviceLanguage);
           setCurrentLanguage(deviceLanguage);
           
           // İlk kez ayarlanan dili kaydet
           await AsyncStorage.setItem('app_language', deviceLanguage);
-          console.log('💾 Cihaz dili kaydedildi:', deviceLanguage);
         }
       } catch (error) {
         console.warn('⚠️ Dil yükleme hatası:', error);
@@ -144,7 +123,6 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setCurrentLanguage('en');
       } finally {
         setIsLoading(false);
-        console.log('✅ Dil yükleme tamamlandı');
       }
     };
 
@@ -153,15 +131,11 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Dil değiştir ve kaydet
   const changeLanguage = useCallback(async (language: Language) => {
-    try {
-      console.log('🔄 Dil değiştiriliyor:', currentLanguage, '->', language);
-      
+    try {      
       await AsyncStorage.setItem('app_language', language);
       setCurrentLanguage(language);
       setLanguageVersion(prev => prev + 1); // Version artır
       
-      console.log('✅ Dil başarıyla değiştirildi:', language);
-      console.log('📊 Language Version:', languageVersion + 1);
     } catch (error) {
       console.error('❌ Dil değiştirme hatası:', error);
     }

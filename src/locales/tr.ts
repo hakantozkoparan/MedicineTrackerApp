@@ -1,4 +1,5 @@
 export default {
+  premiumRequiredMessage: 'AI sohbeti kullanmak için premium üye olmalısınız.',
   // PremiumModal localization keys
   goPremium: "Premium'a Geçin",
   moreFeatures: "Sınırsız özellikler ile daha fazlası",
@@ -14,6 +15,15 @@ export default {
   premiumFeatureCloudDesc: "Verileriniz otomatik olarak bulutta güvende.",
   premiumFeatureSupport: "Premium Destek",
   premiumFeatureSupportDesc: "Öncelikli müşteri destek hizmeti.",
+  // ...existing keys...
+  premiumFeature_unlimitedMedicine_title: 'Sınırsız İlaç Ekleme',
+  premiumFeature_unlimitedMedicine_desc: 'İstediğiniz kadar ilaç ekleyip takip edebilirsiniz.',
+  premiumFeature_aiChat_title: 'AI Sohbet Desteği',
+  premiumFeature_aiChat_desc: 'Sağlık ve ilaç konularında yapay zeka ile sohbet edebilirsiniz.',
+  premiumFeature_adFree_title: 'Reklamsız Kullanım',
+  premiumFeature_adFree_desc: 'Uygulamayı tamamen reklamsız kullanın.',
+  premiumFeature_support_title: 'Premium Destek',
+  premiumFeature_support_desc: 'Öncelikli müşteri destek hizmeti.',
   subscriptionOptions: "Abonelik Seçenekleri",
   loadingPackages: "Paketler yükleniyor...",
   startPremium: "Premium'a Başla",
@@ -74,6 +84,18 @@ export default {
   todayReminders: "Bugünün Hatırlatıcıları",
   noRemindersToday: 'Bugün için hatırlatıcı yok',
   medicineToggleWarning: 'İlacı kapatmanız durumunda bildirim gelmesi durdurulacaktır.',
+  
+  // AI Chat
+  aiChat: 'AI Sohbet',
+  aiWelcomeMessage: 'Merhaba! Sağlık ve ilaç konularında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?',
+  aiErrorMessage: 'Üzgünüm, şu anda size yardımcı olamıyorum. Lütfen daha sonra tekrar deneyin.',
+  aiThinking: 'Düşünüyorum...',
+  aiInputPlaceholder: 'Sağlık veya ilaç hakkında soru sorun...',
+  aiDisclaimer: 'AI asistan sadece genel bilgi sağlar. Ciddi sağlık sorunları için doktorunuza başvurun.',
+  clearChat: 'Sohbeti Temizle',
+  clearChatConfirm: 'Tüm mesajlar silinecek. Emin misiniz?',
+  clear: 'Temizle',
+  you: 'Sen',
   
   // Medicine
   medicineName: 'İlaç Adı',

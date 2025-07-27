@@ -26,36 +26,37 @@ interface PremiumModalProps {
   currentMedicineCount?: number;
 }
 
-const PREMIUM_FEATURES = [
+type PremiumFeature = {
+  icon: string;
+  iconFamily: 'MaterialIcons' | 'MaterialCommunityIcons';
+  titleKey: keyof typeof import('@/locales/tr').default;
+  descriptionKey: keyof typeof import('@/locales/tr').default;
+};
+
+const PREMIUM_FEATURES: PremiumFeature[] = [
   {
     icon: 'medical-services',
     iconFamily: 'MaterialIcons',
-    titleKey: 'premiumFeatureUnlimited',
-    descriptionKey: 'premiumFeatureUnlimitedDesc',
+    titleKey: 'premiumFeature_unlimitedMedicine_title',
+    descriptionKey: 'premiumFeature_unlimitedMedicine_desc',
   },
   {
-    icon: 'notifications-active',
-    iconFamily: 'MaterialIcons',
-    titleKey: 'premiumFeatureReminders',
-    descriptionKey: 'premiumFeatureRemindersDesc',
+    icon: 'robot',
+    iconFamily: 'MaterialCommunityIcons',
+    titleKey: 'premiumFeature_aiChat_title',
+    descriptionKey: 'premiumFeature_aiChat_desc',
   },
   {
-    icon: 'insights',
-    iconFamily: 'MaterialIcons',
-    titleKey: 'premiumFeatureStats',
-    descriptionKey: 'premiumFeatureStatsDesc',
-  },
-  {
-    icon: 'cloud-sync',
-    iconFamily: 'MaterialIcons',
-    titleKey: 'premiumFeatureCloud',
-    descriptionKey: 'premiumFeatureCloudDesc',
+    icon: 'movie-remove',
+    iconFamily: 'MaterialCommunityIcons',
+    titleKey: 'premiumFeature_adFree_title',
+    descriptionKey: 'premiumFeature_adFree_desc',
   },
   {
     icon: 'support-agent',
     iconFamily: 'MaterialIcons',
-    titleKey: 'premiumFeatureSupport',
-    descriptionKey: 'premiumFeatureSupportDesc',
+    titleKey: 'premiumFeature_support_title',
+    descriptionKey: 'premiumFeature_support_desc',
   },
 ];
 
@@ -305,8 +306,8 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       <View key={index} style={styles.featureRow}>
         <IconComponent name={feature.icon as any} size={24} color={COLORS.primary} />
         <View style={styles.featureText}>
-          <Text style={styles.featureTitle}>{t(feature.titleKey as any)}</Text>
-          <Text style={styles.featureDescription}>{t(feature.descriptionKey as any)}</Text>
+          <Text style={styles.featureTitle}>{t(feature.titleKey)}</Text>
+          <Text style={styles.featureDescription}>{t(feature.descriptionKey)}</Text>
         </View>
       </View>
     );
@@ -726,5 +727,15 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+// PremiumModal artık navigation ile açılmıyor, state ile açılıp kapatılıyor.
+// AIChatScreen'de şöyle kullanılmalı:
+//
+// import PremiumModal from '@/components/PremiumModal';
+// const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+// ...
+// <PremiumModal visible={premiumModalVisible} onClose={() => setPremiumModalVisible(false)} />
+// ...
+// Premium butonuna tıklanınca: setPremiumModalVisible(true)
 
 export default PremiumModal;

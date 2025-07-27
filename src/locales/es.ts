@@ -1,4 +1,13 @@
 export default {
+  premiumFeature_unlimitedMedicine_title: 'Agregar Medicamentos Ilimitados',
+premiumFeature_unlimitedMedicine_desc: 'Agrega y rastrea tantos medicamentos como desees.',
+premiumFeature_aiChat_title: 'Soporte de Chat AI',
+premiumFeature_aiChat_desc: 'Chatea con IA sobre temas de salud y medicamentos.',
+premiumFeature_adFree_title: 'Sin Publicidad',
+premiumFeature_adFree_desc: 'Usa la aplicación completamente sin anuncios.',
+premiumFeature_support_title: 'Soporte Premium',
+premiumFeature_support_desc: 'Servicio de atención al cliente prioritario.',
+  premiumRequiredMessage: 'Para usar el chat de IA debes ser miembro premium.',
   // PremiumModal localization keys
   goPremium: "Hacerse Premium",
   moreFeatures: "Mucho más con funciones ilimitadas",
@@ -75,6 +84,18 @@ export default {
   todayReminders: "Recordatorios de Hoy",
   noRemindersToday: 'No hay recordatorios para hoy',
   medicineToggleWarning: 'Desactivar el medicamento detendrá las notificaciones.',
+  
+  // AI Chat
+  aiChat: 'Chat IA',
+  aiWelcomeMessage: '¡Hola! Puedo responder sus preguntas sobre salud y medicina. ¿Cómo puedo ayudarle?',
+  aiErrorMessage: 'Lo siento, no puedo ayudarle ahora mismo. Por favor, inténtelo más tarde.',
+  aiThinking: 'Pensando...',
+  aiInputPlaceholder: 'Pregunta sobre salud o medicina...',
+  aiDisclaimer: 'El asistente IA solo proporciona información general. Consulte a su médico para problemas de salud graves.',
+  clearChat: 'Limpiar Chat',
+  clearChatConfirm: 'Todos los mensajes serán eliminados. ¿Está seguro?',
+  clear: 'Limpiar',
+  you: 'Usted',
   
   // Medicine
   medicineName: 'Nombre del Medicamento',

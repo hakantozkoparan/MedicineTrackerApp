@@ -1,4 +1,13 @@
 export default {
+  premiumFeature_unlimitedMedicine_title: 'Неограниченное добавление лекарств',
+premiumFeature_unlimitedMedicine_desc: 'Добавляйте и отслеживайте любое количество лекарств.',
+premiumFeature_aiChat_title: 'Поддержка AI-чата',
+premiumFeature_aiChat_desc: 'Общайтесь с ИИ на темы здоровья и лекарств.',
+premiumFeature_adFree_title: 'Без рекламы',
+premiumFeature_adFree_desc: 'Используйте приложение без рекламы.',
+premiumFeature_support_title: 'Премиум поддержка',
+premiumFeature_support_desc: 'Приоритетная служба поддержки клиентов.',
+  premiumRequiredMessage: 'Чтобы использовать чат с ИИ, вы должны быть премиум-пользователем.',
   // PremiumModal localization keys
   goPremium: "Перейти на Премиум",
   moreFeatures: "Больше возможностей с неограниченными функциями",
@@ -75,6 +84,18 @@ export default {
   todayReminders: "Напоминания на сегодня",
   noRemindersToday: 'На сегодня напоминаний нет',
   medicineToggleWarning: 'Отключение лекарства остановит уведомления.',
+  
+  // AI Chat
+  aiChat: 'ИИ Чат',
+  aiWelcomeMessage: 'Привет! Я могу ответить на ваши вопросы о здоровье и лекарствах. Как я могу помочь?',
+  aiErrorMessage: 'Извините, я не могу помочь вам прямо сейчас. Пожалуйста, попробуйте позже.',
+  aiThinking: 'Думаю...',
+  aiInputPlaceholder: 'Спросите о здоровье или лекарствах...',
+  aiDisclaimer: 'ИИ-помощник предоставляет только общую информацию. При серьезных проблемах со здоровьем обратитесь к врачу.',
+  clearChat: 'Очистить чат',
+  clearChatConfirm: 'Все сообщения будут удалены. Вы уверены?',
+  clear: 'Очистить',
+  you: 'Вы',
   
   // Medicine
   medicineName: 'Название лекарства',

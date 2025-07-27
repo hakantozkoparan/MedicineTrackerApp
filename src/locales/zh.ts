@@ -1,4 +1,5 @@
 export default {
+  premiumRequiredMessage: '要使用AI聊天，您必须是高级会员。',
   // PremiumModal localization keys
   goPremium: "升级至高级版",
   moreFeatures: "无限功能，更多精彩",
@@ -75,6 +76,18 @@ export default {
   todayReminders: "今日提醒",
   noRemindersToday: '今天没有提醒',
   medicineToggleWarning: '关闭药物将停止通知。',
+  
+  // AI Chat
+  aiChat: 'AI 聊天',
+  aiWelcomeMessage: '您好！我可以回答您关于健康和药物的问题。我怎么帮助您？',
+  aiErrorMessage: '抱歉，我现在无法帮助您。请稍后再试。',
+  aiThinking: '思考中...',
+  aiInputPlaceholder: '询问健康或药物问题...',
+  aiDisclaimer: 'AI助手仅提供一般信息。严重健康问题请咨询医生。',
+  clearChat: '清除聊天',
+  clearChatConfirm: '所有消息将被删除。您确定吗？',
+  clear: '清除',
+  you: '您',
   
   // Medicine
   medicineName: '药物名称',
@@ -399,4 +412,12 @@ export default {
   permissionNotificationDescription: '此应用需要通知权限来向您发送服药提醒。',
   permissionTrackingDescription: '此应用请求您的许可，以便为您显示更相关的广告并改善您的应用体验。',
   trackingConsentMessage: '我允许我的数据被跟踪用于个性化广告。（可选）',
+  premiumFeature_unlimitedMedicine_title: '无限添加药品',
+premiumFeature_unlimitedMedicine_desc: '可随意添加和跟踪药品。',
+premiumFeature_aiChat_title: 'AI聊天支持',
+premiumFeature_aiChat_desc: '与AI聊天，讨论健康和药品话题。',
+premiumFeature_adFree_title: '无广告体验',
+premiumFeature_adFree_desc: '完全无广告地使用应用程序。',
+premiumFeature_support_title: '高级支持',
+premiumFeature_support_desc: '优先客户支持服务。',
 };

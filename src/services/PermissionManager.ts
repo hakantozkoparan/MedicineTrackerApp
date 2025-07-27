@@ -46,10 +46,8 @@ class PermissionManager {
         }
         
         if (finalStatus === 'granted') {
-          console.log('✅ Notification permission granted');
           return true;
         } else {
-          console.log('❌ Notification permission denied');
           return false;
         }
       }
@@ -73,10 +71,8 @@ class PermissionManager {
         }
         
         if (finalStatus === 'granted') {
-          console.log('✅ Tracking permission granted');
           return true;
         } else {
-          console.log('❌ Tracking permission denied');
           return false;
         }
       }
@@ -90,7 +86,6 @@ class PermissionManager {
   // Tüm izinleri sırayla iste - sadece consent vermiş kullanıcılar için tracking
   static async requestAllPermissions(userTrackingConsent = false) {
     try {
-      console.log('🔔 Requesting permissions...');
       
       // Önce notification izni
       const notificationGranted = await this.requestNotificationPermissions();
@@ -100,13 +95,7 @@ class PermissionManager {
       if (userTrackingConsent) {
         trackingGranted = await this.requestTrackingPermission();
       } else {
-        console.log('⏭️ Tracking permission skipped - user did not consent');
       }
-      
-      console.log('📋 Permission results:', {
-        notifications: notificationGranted,
-        tracking: trackingGranted
-      });
       
       return {
         notifications: notificationGranted,
