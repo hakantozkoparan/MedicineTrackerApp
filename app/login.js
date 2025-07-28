@@ -394,7 +394,24 @@ const LoginScreen = () => {
         } catch (error) {
           // Başarılı giriş kaydı hatası - sessizce devam et
         }
-        
+
+        // Kullanıcı giriş yaptıktan sonra, notificationIds alanı boş olan ve notificationsEnabled=true olan ilaçlara yeni notificationId ekle
+        try {
+          const { collection, getDocs, updateDoc } = await import('firebase/firestore');
+          const medicinesColRef = collection(db, `users/${user.uid}/medicines`);
+          const snapshot = await getDocs(medicinesColRef);
+          for (const medicineDoc of snapshot.docs) {
+            const data = medicineDoc.data();
+            if (data.notificationsEnabled && (!data.notificationIds || data.notificationIds.length === 0)) {
+              // Yeni notificationId oluştur
+              const newId = `${user.uid}-${medicineDoc.id}-${Date.now()}`;
+              await updateDoc(medicineDoc.ref, { notificationIds: [newId] });
+            }
+          }
+        } catch (error) {
+          // Bildirim id güncelleme hatası - sessizce devam et
+        }
+
         // Sadece ana tabs sayfasına yönlendir
         router.replace('/(tabs)');
       })

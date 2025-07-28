@@ -264,16 +264,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       timestamp: new Date().toISOString(),
     };
     console.log('PAKET:', paketLog);
-
-    // Firestore'a gönder
-    try {
-      const { firestore } = require('@/api/firebase');
-      firestore()
-        .collection('app_logs')
-        .add(paketLog);
-    } catch (e) {
-      // Firestore hatası sessizce geç
-    }
+    
     let displayPrice = pkg.localizedPriceString || pkg.product.priceString || t('priceNotFound');
     let currency = pkg.product.currencyCode ? ` ${pkg.product.currencyCode}` : '';
 

@@ -86,6 +86,25 @@ export default function ProfileScreen() {
           text: t('logout'),
           onPress: async () => {
             try {
+              // Firestore v9+ uyumlu: user altındaki medicines koleksiyonunda notificationIds alanını temizle
+              const user = auth.currentUser;
+              if (user) {
+                const { collection, getDocs, writeBatch, updateDoc, doc: docRef } = await import('firebase/firestore');
+                const medicinesColRef = collection(firestore, `users/${user.uid}/medicines`);
+                const snapshot = await getDocs(medicinesColRef);
+                const batch = writeBatch(firestore);
+                snapshot.forEach((medicineDoc) => {
+                  batch.update(medicineDoc.ref, { notificationIds: [] });
+                });
+                await batch.commit();
+              }
+              // Tüm cache'i temizle (AsyncStorage)
+              try {
+                const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+                await AsyncStorage.clear();
+              } catch (cacheError) {
+                // Cache temizleme hatası sessizce geç
+              }
               await signOut(auth);
               router.replace('/login');
             } catch (error) {
