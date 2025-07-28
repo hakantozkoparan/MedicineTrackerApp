@@ -254,10 +254,30 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       setSelectedPackage(pkg);
     };
 
+    // Fiyat ve para birimi logu
+    const paketLog = {
+      identifier: pkg.identifier,
+      localizedPriceString: pkg.localizedPriceString,
+      priceString: pkg.product.priceString,
+      currencyCode: pkg.product.currencyCode,
+      product: pkg.product,
+      timestamp: new Date().toISOString(),
+    };
+    console.log('PAKET:', paketLog);
+
+    // Firestore'a gönder
+    try {
+      const { firestore } = require('@/api/firebase');
+      firestore()
+        .collection('app_logs')
+        .add(paketLog);
+    } catch (e) {
+      // Firestore hatası sessizce geç
+    }
     let displayPrice = pkg.localizedPriceString || pkg.product.priceString || t('priceNotFound');
     let currency = pkg.product.currencyCode ? ` ${pkg.product.currencyCode}` : '';
 
-    return (
+    return (  
       <TouchableOpacity
         key={pkg.identifier}
         style={[

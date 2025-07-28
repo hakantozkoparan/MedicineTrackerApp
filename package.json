@@ -34,6 +34,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.10",
+    "expo-tracking-transparency": "~5.2.4",
     "expo-web-browser": "~14.2.0",
     "firebase": "^11.10.0",
     "react": "19.0.0",
@@ -45,9 +46,9 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-tracking-transparency": "^0.1.2",
     "react-native-web": "~0.20.0",
-    "react-native-webview": "13.13.5",
-    "expo-tracking-transparency": "~5.2.4"
+    "react-native-webview": "13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

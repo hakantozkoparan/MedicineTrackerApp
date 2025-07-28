@@ -31,6 +31,18 @@ const RegisterScreen = () => {
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
   const [allowTracking, setAllowTracking] = useState(false); // Tracking consent
+  // App Tracking Transparency
+  const askTrackingPermission = async () => {
+    try {
+      // Sadece iOS'ta çalışır
+      if (Platform.OS === 'ios') {
+        const { requestTrackingPermission } = await import('react-native-tracking-transparency');
+        await requestTrackingPermission();
+      }
+    } catch (err) {
+      console.log('Tracking permission error:', err);
+    }
+  }
 
   // Firebase konfigürasyon kontrolü
   React.useEffect(() => {
@@ -303,7 +315,13 @@ const RegisterScreen = () => {
         {/* Tracking Consent Checkbox */}
         <TouchableOpacity 
           style={styles.checkboxContainer}
-          onPress={() => setAllowTracking(!allowTracking)}
+          onPress={async () => {
+            const newValue = !allowTracking;
+            setAllowTracking(newValue);
+            if (newValue) {
+              await askTrackingPermission();
+            }
+          }}
         >
           <View style={[styles.checkbox, allowTracking && styles.checkboxChecked]}>
             {allowTracking && <Text style={styles.checkboxTick}>✓</Text>}
