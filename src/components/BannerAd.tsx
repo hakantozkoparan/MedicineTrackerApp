@@ -1,8 +1,7 @@
 import { COLORS } from '@/constants/theme';
 import { usePremiumLimit } from '@/hooks/usePremiumLimit';
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import { getAuth } from 'firebase/auth';
+import { Platform, Text, View } from 'react-native';
 
 // Google Mobile Ads'ı güvenli şekilde import et
 let GoogleBannerAd: any = null;
@@ -22,33 +21,28 @@ interface BannerAdComponentProps {
 const BannerAdComponent: React.FC<BannerAdComponentProps> = ({ style }) => {
   const { isPremium } = usePremiumLimit();
   const [hasTrackingConsent, setHasTrackingConsent] = useState(false);
-  const auth = getAuth();
 
-  // Kullanıcının tracking consent'ini kontrol et
+  // ATT permission durumunu kontrol et
   useEffect(() => {
-    const checkTrackingConsent = async () => {
+    const checkTrackingPermission = async () => {
       try {
-        const user = auth.currentUser;
-        if (user) {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const { db } = await import('@/api/firebase');
-          if (db) {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              setHasTrackingConsent(userData.trackingConsent || false);
-            }
-          }
+        // iOS'ta ATT permission status'ını kontrol et
+        if (Platform.OS === 'ios') {
+          const { getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+          const { status } = await getTrackingPermissionsAsync();
+          setHasTrackingConsent(status === 'granted');
+        } else {
+          // Android'de tracking her zaman izinli
+          setHasTrackingConsent(true);
         }
       } catch (error) {
-        console.error('Error checking tracking consent:', error);
+        console.error('Error checking tracking permission:', error);
         setHasTrackingConsent(false);
       }
     };
 
-    checkTrackingConsent();
-  }, [auth]);
+    checkTrackingPermission();
+  }, []);
 
   // Premium kullanıcılarda banner gösterme
   if (isPremium) {

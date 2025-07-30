@@ -30,19 +30,10 @@ const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [captchaResetTrigger, setCaptchaResetTrigger] = useState(0);
-  const [allowTracking, setAllowTracking] = useState(false); // Tracking consent
-  // App Tracking Transparency
-  const askTrackingPermission = async () => {
-    try {
-      // Sadece iOS'ta çalışır
-      if (Platform.OS === 'ios') {
-        const { requestTrackingPermission } = await import('react-native-tracking-transparency');
-        await requestTrackingPermission();
-      }
-    } catch (err) {
-      console.log('Tracking permission error:', err);
-    }
-  }
+  // Artık tracking permission uygulama başında otomatik isteniyor, 
+  // bu yüzden checkbox'a gerek yok ama eski kullanıcılar için uyumluluk
+  const [allowTracking, setAllowTracking] = useState(true); // Tracking consent (default true)
+  // Tracking permission artık _layout.tsx'te uygulama başında otomatik isteniyor
 
   // Firebase konfigürasyon kontrolü
   React.useEffect(() => {
@@ -312,24 +303,7 @@ const RegisterScreen = () => {
           resetTrigger={captchaResetTrigger}
         />
 
-        {/* Tracking Consent Checkbox */}
-        <TouchableOpacity 
-          style={styles.checkboxContainer}
-          onPress={async () => {
-            const newValue = !allowTracking;
-            setAllowTracking(newValue);
-            if (newValue) {
-              await askTrackingPermission();
-            }
-          }}
-        >
-          <View style={[styles.checkbox, allowTracking && styles.checkboxChecked]}>
-            {allowTracking && <Text style={styles.checkboxTick}>✓</Text>}
-          </View>
-          <Text style={styles.checkboxText}>
-            {t('trackingConsentMessage')}
-          </Text>
-        </TouchableOpacity>
+        {/* Tracking artık uygulama başında otomatik isteniyor, checkbox kaldırıldı */}
 
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />

@@ -68,6 +68,12 @@
           "delay_app_measurement_init": true,
           "optimize_initialization": true
         }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Bu uygulama size özelleştirilmiş reklamlar sunmak ve uygulama performansını iyileştirmek için sizi izlemek istiyor."
+        }
       ]
     ],
     "experiments": {

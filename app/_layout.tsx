@@ -124,46 +124,37 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
-  // Permissions request - sadece authenticated user için
+  // Request tracking permission early - right when app starts
+  useEffect(() => {
+    if (authReady) {
+      const requestTrackingPermission = async () => {
+        try {
+          if (Platform.OS === 'ios') {
+            const { requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+            await requestTrackingPermissionsAsync();
+          }
+        } catch (error) {
+          console.error('Early tracking permission request failed:', error);
+        }
+      };
+      // Request tracking permission immediately when app starts
+      requestTrackingPermission();
+    }
+  }, [authReady]);
+
+  // Permissions request - authenticated user için diğer izinler
   useEffect(() => {
     if (authReady && user && emailVerified) {
-      // Biraz gecikme ile permissions iste (UI stabilize olsun)
       const requestPermissions = async () => {
         try {
           PermissionManager.setLocalizationContext({ t: t as (key: string) => string });
-          let userTrackingConsent = false;
-          let attStatus = 'notDetermined';
-          try {
-            const { doc, getDoc } = await import('firebase/firestore');
-            const { db } = await import('@/api/firebase');
-            if (db) {
-              const userDocRef = doc(db, 'users', user.uid);
-              const userDoc = await getDoc(userDocRef);
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                userTrackingConsent = userData.trackingConsent || false;
-              }
-            }
-          } catch (error) {
-            console.error('Error checking tracking consent:', error);
-          }
-          // ATT izni durumu kontrolü (iOS)
-          if (Platform.OS === 'ios') {
-            try {
-              const { getTrackingStatus } = await import('react-native-tracking-transparency');
-              attStatus = await getTrackingStatus();
-            } catch (err) {
-              console.log('ATT status error:', err);
-            }
-          }
-          // Fallback: Her iki iznin durumu
-          const canTrack = userTrackingConsent && attStatus === 'authorized';
-          await PermissionManager.requestAllPermissions(canTrack);
+          // Sadece notification permission iste, tracking zaten başta istendi
+          await PermissionManager.requestNotificationPermissions();
         } catch (error) {
           console.error('Permissions request failed:', error);
         }
       };
-      const timeoutId = setTimeout(requestPermissions, 2000); // 2 saniye gecikme
+      const timeoutId = setTimeout(requestPermissions, 1000); // 1 saniye gecikme
       return () => clearTimeout(timeoutId);
     }
   }, [authReady, user, emailVerified, t]);
