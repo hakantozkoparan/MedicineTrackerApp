@@ -124,37 +124,45 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
-  // Request tracking permission early - right when app starts
-  useEffect(() => {
-    if (authReady) {
-      const requestTrackingPermission = async () => {
-        try {
-          if (Platform.OS === 'ios') {
-            const { requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
-            await requestTrackingPermissionsAsync();
-          }
-        } catch (error) {
-          console.error('Early tracking permission request failed:', error);
-        }
-      };
-      // Request tracking permission immediately when app starts
-      requestTrackingPermission();
-    }
-  }, [authReady]);
-
-  // Permissions request - authenticated user için diğer izinler
+  // Sıralı permissions request - authenticated user için
   useEffect(() => {
     if (authReady && user && emailVerified) {
-      const requestPermissions = async () => {
+      const requestAllPermissionsSequentially = async () => {
         try {
           PermissionManager.setLocalizationContext({ t: t as (key: string) => string });
-          // Sadece notification permission iste, tracking zaten başta istendi
+          
+          // 1. Önce ATT permission status kontrol et ve gerekirse iste (iOS)
+          if (Platform.OS === 'ios') {
+            try {
+              const { getTrackingPermissionsAsync, requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+              
+              // Önce mevcut status'ı kontrol et
+              const { status: currentStatus } = await getTrackingPermissionsAsync();
+              console.log('🔍 Current ATT status:', currentStatus);
+              
+              // Sadece henüz sorulmamışsa iste
+              if (currentStatus === 'undetermined') {
+                await requestTrackingPermissionsAsync();
+                console.log('✅ ATT permission requested (was undetermined)');
+              } else {
+                console.log('ℹ️ ATT permission already determined:', currentStatus);
+              }
+            } catch (error) {
+              console.error('ATT permission request failed:', error);
+            }
+          }
+          
+          // 2. ATT tamamlandıktan sonra notification permission iste
+          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms bekle
           await PermissionManager.requestNotificationPermissions();
+          console.log('✅ Notification permission requested');
+          
         } catch (error) {
-          console.error('Permissions request failed:', error);
+          console.error('Sequential permissions request failed:', error);
         }
       };
-      const timeoutId = setTimeout(requestPermissions, 1000); // 1 saniye gecikme
+      
+      const timeoutId = setTimeout(requestAllPermissionsSequentially, 1000); // 1 saniye gecikme
       return () => clearTimeout(timeoutId);
     }
   }, [authReady, user, emailVerified, t]);

@@ -222,6 +222,14 @@ class PurchaseManager {
                 productDiscounts: pkg.product.discounts || null,
                 productIntroPrice: pkg.product.introPrice || null,
                 offeringIdentifier: currentOffering?.identifier || 'unknown',
+                // EXTRA DEBUG FIELDS
+                isTestEnvironment: Constants.appOwnership === 'expo',
+                buildType: Constants.appOwnership || 'unknown', 
+                platformOS: Platform.OS,
+                expoVersion: Constants.expoVersion || 'unknown',
+                appVersion: Constants.expoConfig?.version || 'unknown',
+                isTestFlight: Constants.appOwnership === 'standalone' && !Constants.isDevice,
+                revenueCatLogLevel: 'debug_check',
               };
               
               await addDoc(collection(db, 'debug_logs'), revenueCatDebugData);
