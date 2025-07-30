@@ -5,16 +5,16 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -254,19 +254,49 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
       setSelectedPackage(pkg);
     };
 
-    // Fiyat ve para birimi logu
-    const paketLog = {
-      identifier: pkg.identifier,
-      localizedPriceString: pkg.localizedPriceString,
-      priceString: pkg.product.priceString,
-      currencyCode: pkg.product.currencyCode,
-      product: pkg.product,
-      timestamp: new Date().toISOString(),
+    // FIREBASE DEBUG - Fiyat localization problemi için
+    const sendDebugToFirebase = async () => {
+      try {
+        const { db } = await import('@/api/firebase');
+        const { collection, addDoc } = await import('firebase/firestore');
+        const { getAuth } = await import('firebase/auth');
+        
+        const auth = getAuth();
+        const localization = require('expo-localization');
+        
+        const debugData = {
+          timestamp: new Date(),
+          userId: auth.currentUser?.uid || 'anonymous',
+          packageIdentifier: pkg.identifier || 'unknown',
+          packageType: pkg.packageType || 'unknown',
+          localizedPriceString: pkg.localizedPriceString || null,
+          productPriceString: pkg.product.priceString || null,
+          productPrice: pkg.product.price || 0,
+          productCurrencyCode: pkg.product.currencyCode || 'UNKNOWN',
+          productTitle: pkg.product.title || 'No Title',
+          productIdentifier: pkg.product.identifier || 'unknown',
+          deviceLocales: localization.getLocales() || [],
+          deviceRegion: localization.getCalendars()[0]?.regionCode || 'UNKNOWN',
+          deviceTimeZone: localization.getCalendars()[0]?.timeZone || 'UNKNOWN',
+          deviceLanguage: localization.getLocales()[0]?.languageTag || 'UNKNOWN',
+          finalDisplayPrice: pkg.localizedPriceString || pkg.product.priceString || `${pkg.product.price} ${pkg.product.currencyCode}` || 'NO_PRICE',
+          debugType: 'PRICE_LOCALIZATION_ISSUE',
+        };
+        
+        await addDoc(collection(db, 'debug_logs'), debugData);
+        console.log('✅ Debug data sent to Firebase for:', pkg.identifier);
+      } catch (error) {
+        console.error('❌ Failed to send debug data:', error);
+      }
     };
-    console.log('PAKET:', paketLog);
     
-    let displayPrice = pkg.localizedPriceString || pkg.product.priceString || t('priceNotFound');
-    let currency = pkg.product.currencyCode ? ` ${pkg.product.currencyCode}` : '';
+    // Firebase'e debug bilgisi gönder (sadece ilk paket için)
+    if (pkg.packageType === 'monthly') {
+      sendDebugToFirebase();
+    }
+    
+    // Fiyat görüntüleme stratejisi
+    let displayPrice = pkg.localizedPriceString || pkg.product.priceString || `${pkg.product.price} ${pkg.product.currencyCode}` || t('priceNotFound');
 
     return (  
       <TouchableOpacity
@@ -295,7 +325,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
 
           <View style={styles.packageRight}>
             <Text style={styles.packagePrice}>
-              {displayPrice}{currency}
+              {displayPrice}
             </Text>
             <View style={styles.radioButton}>
               <View style={[

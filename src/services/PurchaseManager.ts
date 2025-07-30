@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 import { Alert, Platform } from 'react-native';
 import Purchases, {
-  CustomerInfo,
-  LOG_LEVEL,
-  PURCHASES_ERROR_CODE
+    CustomerInfo,
+    LOG_LEVEL,
+    PURCHASES_ERROR_CODE
 } from 'react-native-purchases';
 
 // RevenueCat API anahtarları - gerçek anahtarları buraya ekleyeceğiz
@@ -199,7 +199,43 @@ class PurchaseManager {
           p.identifier === mapping.identifier
         );
         if (pkg) {
-          // ...paket ekleme kodu...
+          // Firebase'e RevenueCat raw data gönder
+          const sendRevenueCatDebugToFirebase = async () => {
+            try {
+              const { db } = await import('@/api/firebase');
+              const { collection, addDoc } = await import('firebase/firestore');
+              const { getAuth } = await import('firebase/auth');
+              
+              const auth = getAuth();
+              
+              const revenueCatDebugData = {
+                timestamp: new Date(),
+                userId: auth.currentUser?.uid || 'anonymous',
+                debugType: 'REVENUECAT_RAW_PACKAGE_DATA',
+                packageIdentifier: pkg.identifier || 'unknown',
+                packageType: pkg.packageType || 'unknown', 
+                productIdentifier: pkg.product.identifier || 'unknown',
+                productTitle: pkg.product.title || 'No Title',
+                productPrice: pkg.product.price || 0,
+                productPriceString: pkg.product.priceString || null,
+                productCurrencyCode: pkg.product.currencyCode || 'UNKNOWN',
+                productDiscounts: pkg.product.discounts || null,
+                productIntroPrice: pkg.product.introPrice || null,
+                offeringIdentifier: currentOffering?.identifier || 'unknown',
+              };
+              
+              await addDoc(collection(db, 'debug_logs'), revenueCatDebugData);
+              console.log('✅ RevenueCat debug sent to Firebase for:', pkg.identifier);
+            } catch (error) {
+              console.error('❌ Failed to send RevenueCat debug:', error);
+            }
+          };
+          
+          // İlk paket için Firebase'e gönder
+          if (mapping.type === 'monthly') {
+            sendRevenueCatDebugToFirebase();
+          }
+          
           const existingPackage = packages.find(existingPkg => existingPkg.packageType === mapping.type);
           if (!existingPackage) {
             packages.push({
@@ -213,7 +249,7 @@ class PurchaseManager {
                 priceString: pkg.product.priceString,
                 currencyCode: pkg.product.currencyCode,
               },
-              localizedPriceString: pkg.product.priceString,
+              localizedPriceString: pkg.product.priceString, // RevenueCat'ten gelen localized price
               localizedIntroductoryPriceString: undefined,
             });
           }
