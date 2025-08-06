@@ -24,6 +24,7 @@ import BannerAd from '@/components/BannerAd';
 import DropdownSelector, { DropdownOption } from '@/components/DropdownSelector';
 import OptionSelector, { Option } from '@/components/OptionSelector';
 import PremiumModal from '@/components/PremiumModal';
+import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import { useLocalization } from '@/hooks/useLocalization';
 import usePremiumLimit from '@/hooks/usePremiumLimit';
@@ -302,6 +303,9 @@ const AddMedicineScreen = () => {
       <BannerAd />
 
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+        {/* Medical Disclaimer */}
+        <MedicalDisclaimer compact={true} />
+        
         {/* Premium Limit Uyarısı */}
         {!limitLoading && medicineLimit && medicineCount >= medicineLimit && (
           <View style={styles.limitWarning}>

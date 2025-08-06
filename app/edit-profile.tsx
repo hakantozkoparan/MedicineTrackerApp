@@ -19,6 +19,8 @@ import {
 
 import { COLORS, FONTS, SIZES } from '@/constants/theme';
 import { useLocalization } from '@/hooks/useLocalization';
+import LegalLinks from '@/components/LegalLinks';
+import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 
 const LabelWithInfo = ({ label, infoText }: { label: string; infoText: string }) => (
     <View style={styles.labelContainer}>
@@ -39,6 +41,7 @@ const EditProfileScreen = () => {
   const [originalEmail, setOriginalEmail] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     const user = auth?.currentUser;
@@ -318,6 +321,113 @@ const EditProfileScreen = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      t('deleteAccount'),
+      t('deleteAccountDescription'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('deleteAccount'),
+          style: 'destructive',
+          onPress: () => confirmDeleteAccount(),
+        },
+      ]
+    );
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      t('deleteAccountWarning'),
+      t('deleteAccountConfirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('deleteAccount'),
+          style: 'destructive',
+          onPress: () => executeDeleteAccount(),
+        },
+      ]
+    );
+  };
+
+  const executeDeleteAccount = async () => {
+    setDeletingAccount(true);
+    
+    try {
+      const user = auth?.currentUser;
+      if (!user) {
+        Alert.alert(t('error'), t('deleteAccountError'));
+        return;
+      }
+
+      // 0. Tüm aktif Firebase listener'ları durdur (hata önlemek için)
+      // Bu, router.replace ile sayfalar değiştiğinde listener'ları kapatacak
+      
+      // 1. ÖNCE Firestore verilerini sil (Auth hesabı silinmeden önce)
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          
+          // Önce medicines subcollection'ını sil
+          const { collection, getDocs, deleteDoc } = await import('firebase/firestore');
+          const medicinesColRef = collection(db, `users/${user.uid}/medicines`);
+          const medicinesSnapshot = await getDocs(medicinesColRef);
+          
+          // Tüm ilaçları sil
+          for (const medicineDoc of medicinesSnapshot.docs) {
+            await deleteDoc(medicineDoc.ref);
+          }
+          
+          // Ana user dokümanını sil
+          await deleteDoc(userDocRef);
+        } catch (firestoreError: any) {
+          console.error('Firestore cleanup error:', firestoreError);
+          // Firestore silme başarısız olursa işlemi durdur
+          throw new Error('Firestore verilerini silerken hata oluştu: ' + firestoreError.message);
+        }
+      }
+
+      // 2. Sonra Firebase Auth hesabını sil
+      await user.delete();
+
+      // 3. Son olarak AsyncStorage'ı temizle
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        await AsyncStorage.clear();
+      } catch (cacheError) {
+        console.log('Cache clearing error:', cacheError);
+      }
+
+      // 4. Başarı mesajı göster ve login sayfasına yönlendir
+      Alert.alert(
+        t('success'),
+        t('deleteAccountSuccess'),
+        [
+          {
+            text: t('ok'),
+            onPress: () => {
+              // Auth hesabı zaten silinmiş, direkt login sayfasına yönlendir
+              router.replace('/login');
+            },
+          },
+        ],
+        { cancelable: false } // Kullanıcı alert dışına tıklayarak kapatamaz
+      );
+    } catch (error: any) {
+      console.error('Account deletion error:', error);
+      
+      let errorMessage = t('deleteAccountError');
+      if (error.code === 'auth/requires-recent-login') {
+        errorMessage = t('recentLoginRequiredMessage');
+      }
+      
+      Alert.alert(t('error'), errorMessage);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   if (loading) {
     return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></SafeAreaView>;
   }
@@ -446,6 +556,35 @@ const EditProfileScreen = () => {
             <Text style={styles.saveButtonText}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
+        
+        {/* Medical Disclaimer */}
+        <MedicalDisclaimer style={{ marginVertical: SIZES.large }} />
+        
+        {/* Legal Links */}
+        <LegalLinks style={{ marginVertical: SIZES.large }} />
+        
+        {/* Account Deletion Section */}
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerZoneTitle}>{t('accountDeletion')}</Text>
+          <Text style={styles.dangerZoneDescription}>
+            {t('deleteAccountDescription')}
+          </Text>
+          
+          <TouchableOpacity 
+            style={[styles.deleteButton, deletingAccount && styles.disabledButton]} 
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+          >
+            {deletingAccount ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color={COLORS.white} />
+            )}
+            <Text style={styles.deleteButtonText}>
+              {deletingAccount ? t('deleting') : t('deleteAccount')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Banner Ad */}
@@ -531,6 +670,45 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     fontSize: SIZES.small,
     color: COLORS.white,
+  },
+  dangerZone: {
+    backgroundColor: '#FFF5F5',
+    borderColor: COLORS.danger,
+    borderWidth: 1,
+    borderRadius: SIZES.small,
+    padding: SIZES.large,
+    marginVertical: SIZES.large,
+  },
+  dangerZoneTitle: {
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    color: COLORS.danger,
+    marginBottom: SIZES.small,
+  },
+  dangerZoneDescription: {
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    color: COLORS.dark,
+    lineHeight: 22,
+    marginBottom: SIZES.large,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.danger,
+    paddingVertical: SIZES.medium,
+    paddingHorizontal: SIZES.large,
+    borderRadius: SIZES.small,
+  },
+  deleteButtonText: {
+    marginLeft: SIZES.small,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
+    color: COLORS.white,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
 

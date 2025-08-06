@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Kullanıcıların kendi belgelerini okumasına, güncellemesine ve silmesine izin ver
+    match /users/{uid} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null;
+      
+      // Adminlerin tüm kullanıcı belgelerini okumasına, güncellemesine ve silmesine izin ver
+      allow read, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Kullanıcıların kendi ilaçlarını okumasına, oluşturmasına, güncellemesine ve silmesine izin ver
+      match /medicines/{medicineId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    
+    // Destek talepleri - Giriş yapan kullanıcılar için (Profile sayfasından)
+    match /supportTickets/{ticketId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Destek talepleri - Login sayfasından (Authentication olmadan)
+    match /support_tickets/{ticketId} {
+      allow create: if true; // Login sayfasından da gönderilmesine izin ver
+      allow read: if true; // Cihaz limiti kontrolü için okuma izni
+      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Güvenlik denemeleri - SecurityManager için
+    match /security_attempts/{deviceId} {
+      // Herkesin güvenlik kayıtları oluşturmasına ve güncellemesine izin ver
+      // Bot koruması için kritik - authentication gerekmez
+      allow create, update: if true;
+      
+      // Okuma izni - şimdilik herkese (daha sonra admin kontrolü eklenebilir)
+      allow read: if true;
+    }
+    
+    // App logları - Remote logging için
+    match /app_logs/{logId} {
+      // Tüm authenticated kullanıcıların log yazmasına izin ver
+      allow create: if request.auth != null;
+      
+      // Sadece adminlerin logları okumasına izin ver
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Logları kimse güncelleyemez veya silemez (immutable logs)
+      allow update, delete: if false;
+    }
+    
+    // Debug logları - Fiyat localization ve diğer debug işlemleri için
+    match /debug_logs/{logId} {
+      // Tüm authenticated kullanıcıların debug log yazmasına izin ver
+      allow create: if request.auth != null;
+      
+      // Sadece adminlerin debug logları okumasına izin ver  
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Debug logları kimse güncelleyemez veya silemez (immutable debug logs)
+      allow update, delete: if false;
+    }
+    
+    // Diğer koleksiyonlar için varsayılan olarak okuma/yazma izni yok
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

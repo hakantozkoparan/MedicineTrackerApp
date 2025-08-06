@@ -15,6 +15,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Linking,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -261,6 +262,12 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
         const { collection, addDoc } = await import('firebase/firestore');
         const { getAuth } = await import('firebase/auth');
         
+        // db null kontrolü
+        if (!db) {
+          console.log('❌ Firestore db is null, skipping debug log');
+          return;
+        }
+        
         const auth = getAuth();
         const localization = require('expo-localization');
         
@@ -466,7 +473,31 @@ const PremiumModal: React.FC<PremiumModalProps> = ({
           {/* Terms */}
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
-              {t('acceptTerms')}
+              {t('acceptTermsSubscription')} 
+            </Text>
+            <View style={styles.termsLinksContainer}>
+              <TouchableOpacity 
+                onPress={() => Linking.openURL('https://github.com/hakantozkoparan/MedicineTrackerApp/blob/main/docs/TERMS_OF_USE.md')}
+                style={styles.termLink}
+              >
+                <Text style={styles.termLinkText}>{t('termsOfUse')}</Text>
+              </TouchableOpacity>
+              <Text style={styles.termsText}> • </Text>
+              <TouchableOpacity 
+                onPress={() => Linking.openURL('https://github.com/hakantozkoparan/MedicineTrackerApp/blob/main/docs/PRIVACY_POLICY_EN.md')}
+                style={styles.termLink}
+              >
+                <Text style={styles.termLinkText}>{t('privacyPolicy')}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.subscriptionInfo}>
+              • {t('subscriptionAutoRenew')}
+            </Text>
+            <Text style={styles.subscriptionInfo}>
+              • {t('cancelAnytime')}
+            </Text>
+            <Text style={styles.subscriptionInfo}>
+              • {t('manageThroughAppStore')}
             </Text>
           </View>
         </ScrollView>
@@ -766,6 +797,30 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: 'center',
     lineHeight: 16,
+    marginBottom: SIZES.small,
+  },
+  termsLinksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.medium,
+  },
+  termLink: {
+    padding: SIZES.base,
+  },
+  termLinkText: {
+    ...FONTS.caption,
+    color: COLORS.primary,
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
+  },
+  subscriptionInfo: {
+    ...FONTS.caption,
+    color: COLORS.dark,
+    textAlign: 'left',
+    lineHeight: 18,
+    marginVertical: 2,
+    paddingLeft: SIZES.small,
   },
 });
 

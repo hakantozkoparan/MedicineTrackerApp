@@ -68,7 +68,15 @@ export default function MedicinesScreen() {
         setMedicines(userMedicines);
         setLoading(false);
       }, (error) => {
-        console.error("Error fetching medicines:", error);
+        console.error("İlaç değişiklikleri takip hatası:", error);
+        
+        // Eğer permission hatası varsa (kullanıcı silinmiş olabilir), listener'ı kapat
+        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+          setMedicines([]);
+          setLoading(false);
+          return;
+        }
+        
         setLoading(false);
       });
       return () => unsubscribe();
@@ -124,9 +132,11 @@ export default function MedicinesScreen() {
           <TouchableOpacity onPress={() => handleEdit(item)}>
             <Ionicons name="create-outline" size={24} color={COLORS.darkGray} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item)} style={{ marginLeft: SIZES.medium }}>
-            <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
-          </TouchableOpacity>
+          {isPremium && (
+            <TouchableOpacity onPress={() => handleDelete(item)} style={{ marginLeft: SIZES.medium }}>
+              <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

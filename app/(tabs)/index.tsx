@@ -127,6 +127,14 @@ export default function HomeScreen() {
         })) as Medicine[];
         setMedicines(userMedicines);
       }, (error) => {
+        console.error("İlaç değişiklikleri takip hatası:", error);
+        
+        // Eğer permission hatası varsa (kullanıcı silinmiş olabilir), sessizce geç
+        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+          setMedicines([]);
+          return;
+        }
+        
         Alert.alert("Hata", "İlaçlar alınırken bir sorun oluştu.");
       });
 

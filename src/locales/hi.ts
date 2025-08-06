@@ -92,6 +92,7 @@ premiumFeature_support_desc: 'प्राथमिकता ग्राहक 
   aiThinking: 'सोच रहा हूं...',
   aiInputPlaceholder: 'स्वास्थ्य या दवा के बारे में पूछें...',
   aiDisclaimer: 'AI सहायक केवल सामान्य जानकारी प्रदान करता है। गंभीर स्वास्थ्य समस्याओं के लिए अपने डॉक्टर से सलाह लें।',
+  aiSourcesNote: 'प्रदान की गई जानकारी विश्वसनीय चिकित्सा स्रोतों से संकलित है। निदान और उपचार के लिए कृपया अपने डॉक्टर से सलाह लें।',
   clearChat: 'चैट साफ़ करें',
   clearChatConfirm: 'सभी संदेश हटा दिए जाएंगे। क्या आप सुनिश्चित हैं?',
   clear: 'साफ़ करें',
@@ -420,4 +421,26 @@ premiumFeature_support_desc: 'प्राथमिकता ग्राहक 
   permissionNotificationDescription: 'इस ऐप को आपको दवा के अनुस्मारक भेजने के लिए अधिसूचना अनुमति की आवश्यकता है।',
   permissionTrackingDescription: 'यह ऐप आपकी अनुमति मांगता है ताकि आपको अधिक प्रासंगिक विज्ञापन दिखा सके और आपके ऐप अनुभव को बेहतर बना सके।',
   trackingConsentMessage: 'मैं व्यक्तिगत विज्ञापनों के लिए अपने डेटा को ट्रैक करने की अनुमति देता हूं। (वैकल्पिक)',
+  // Medical Disclaimer
+  medicalDisclaimer: "⚠️ चिकित्सा चेतावनी",
+  medicalDisclaimerText: "यह ऐप केवल व्यक्तिगत दवा ट्रैकिंग में मदद करता है। यह चिकित्सा सलाह प्रदान नहीं करता और डॉक्टर की सलाह का विकल्प नहीं है। दवा के उपयोग संबंधी निर्णयों के लिए कृपया अपने डॉक्टर से सलाह लें।",
+  medicalDisclaimerNote: "अपनी स्वास्थ्य स्थिति के बारे में प्रश्नों के लिए, अपने स्वास्थ्य सेवा प्रदाता से सलाह लें।",
+  // Legal Links
+  legalInformation: "कानूनी जानकारी",
+  privacyPolicy: "गोपनीयता नीति",
+  termsOfUse: "उपयोग की शर्तें",
+  // Account Deletion
+  accountDeletion: "खाता हटाना",
+  deleteAccount: "मेरा खाता हटाएं",
+  deleteAccountWarning: "⚠️ यह क्रिया पूर्ववत नहीं की जा सकती",
+  deleteAccountDescription: "जब आप अपना खाता हटाते हैं, तो आपका सारा डेटा स्थायी रूप से हटा दिया जाएगा। यह क्रिया पूर्ववत नहीं की जा सकती।",
+  deleteAccountConfirm: "मैं अपना खाता स्थायी रूप से हटाना चाहता हूं",
+  deleteAccountSuccess: "आपका खाता सफलतापूर्वक हटा दिया गया है",
+  deleteAccountError: "खाता हटाते समय त्रुटि हुई",
+  deleting: "हटाया जा रहा है...",
+  // Subscription Terms
+  acceptTermsSubscription: "जारी रखकर, आप निम्नलिखित शर्तों को स्वीकार करते हैं:",
+  subscriptionAutoRenew: "सदस्यता स्वचालित रूप से नवीनीकृत होती है",
+  cancelAnytime: "कभी भी रद्द करें",
+  manageThroughAppStore: "App Store के माध्यम से प्रबंधित",
 };
