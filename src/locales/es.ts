@@ -8,6 +8,7 @@ premiumFeature_adFree_desc: 'Usa la aplicación completamente sin anuncios.',
 premiumFeature_support_title: 'Soporte Premium',
 premiumFeature_support_desc: 'Servicio de atención al cliente prioritario.',
   premiumRequiredMessage: 'Para usar el chat de IA debes ser miembro premium.',
+  aiHealthOnlyMessage: 'Este chat solo proporciona información sobre temas de medicamentos y salud. Por favor, haz una pregunta relacionada con la salud.',
   // PremiumModal localization keys
   goPremium: "Hacerse Premium",
   moreFeatures: "Mucho más con funciones ilimitadas",

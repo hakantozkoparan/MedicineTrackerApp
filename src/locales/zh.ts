@@ -443,4 +443,6 @@ export default {
   premiumFeature_adFree_desc: '完全无广告地使用应用程序。',
   premiumFeature_support_title: '高级支持',
   premiumFeature_support_desc: '优先客户支持服务。',
+  // AI Chat
+  aiHealthOnlyMessage: "此聊天仅提供有关药物和健康主题的信息。请提出与健康相关的问题。",
 };

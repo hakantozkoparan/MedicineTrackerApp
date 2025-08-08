@@ -1,5 +1,6 @@
 export default {
   premiumRequiredMessage: 'AI sohbeti kullanmak için premium üye olmalısınız.',
+  aiHealthOnlyMessage: 'Bu sohbet sadece ilaç ve sağlık konularında bilgi vermektedir. Lütfen sağlıkla ilgili bir soru sorun.',
   // PremiumModal localization keys
   goPremium: "Premium'a Geçin",
   moreFeatures: "Sınırsız özellikler ile daha fazlası",

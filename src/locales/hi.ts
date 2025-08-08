@@ -443,4 +443,6 @@ premiumFeature_support_desc: 'प्राथमिकता ग्राहक 
   subscriptionAutoRenew: "सदस्यता स्वचालित रूप से नवीनीकृत होती है",
   cancelAnytime: "कभी भी रद्द करें",
   manageThroughAppStore: "App Store के माध्यम से प्रबंधित",
+  // AI Chat
+  aiHealthOnlyMessage: "यह चैट केवल दवा और स्वास्थ्य विषयों पर जानकारी प्रदान करता है। कृपया स्वास्थ्य से संबंधित प्रश्न पूछें।",
 };

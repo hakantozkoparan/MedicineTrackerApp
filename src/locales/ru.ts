@@ -443,4 +443,6 @@ premiumFeature_support_desc: 'Приоритетная служба поддер
   subscriptionAutoRenew: "Подписка автоматически продлевается",
   cancelAnytime: "Отменить в любое время",
   manageThroughAppStore: "Управляется через App Store",
+  // AI Chat
+  aiHealthOnlyMessage: "Этот чат предоставляет информацию только по вопросам лекарств и здоровья. Пожалуйста, задайте вопрос, связанный со здоровьем.",
 };

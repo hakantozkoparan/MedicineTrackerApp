@@ -62,7 +62,7 @@ export default function AIChatScreen() {
     if (forbiddenKeywords.some(word => lowerInput.includes(word.toLowerCase()))) {
       Alert.alert(
         t('error'),
-        'Bu sohbet sadece ilaç ve sağlık konularında bilgi vermektedir. Lütfen sağlıkla ilgili bir soru sorun.'
+        t('aiHealthOnlyMessage')
       );
       return;
     }

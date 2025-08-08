@@ -8,6 +8,7 @@ premiumFeature_adFree_desc: 'Use the app completely ad-free.',
 premiumFeature_support_title: 'Premium Support',
 premiumFeature_support_desc: 'Priority customer support service.',
   premiumRequiredMessage: 'You must be a premium member to use AI chat.',
+  aiHealthOnlyMessage: 'This chat only provides information on medicine and health topics. Please ask a health-related question.',
   // PremiumModal localization keys
   // PremiumModal localization keys
   goPremium: "Go Premium",
